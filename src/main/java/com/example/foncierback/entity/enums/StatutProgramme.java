@@ -1,4 +1,7 @@
 package com.example.foncierback.entity.enums;
 
-public class StatutProgramme {
+public enum StatutProgramme {
+    DISPONIBLE,
+    COMPLETER,
+    INDISPONIBLE
 }

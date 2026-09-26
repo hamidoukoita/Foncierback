@@ -9,5 +9,4 @@ public class FoncierbackApplication {
     public static void main(String[] args) {
         SpringApplication.run(FoncierbackApplication.class, args);
     }
-
 }
