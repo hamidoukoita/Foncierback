@@ -1,4 +1,6 @@
 package com.example.foncierback.entity.enums;
 
-public class TypeRDV {
+public enum TypeRDV {
+    SIEGE,
+    CHANTIER
 }

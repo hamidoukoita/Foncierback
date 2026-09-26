@@ -1,4 +1,7 @@
 package com.example.foncierback.entity.enums;
 
-public class StatutAgrement {
+public enum StatutAgrement {
+    EN_ATTENTE,
+    VERIFIER,
+    REFUSER
 }
