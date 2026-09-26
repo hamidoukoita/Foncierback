@@ -31,3 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Custom ignores ###
+CAHIER_DES_CHARGES.md
+[cC]ahier_[dD]es_[cC]harges.md
+*cahier*des*charges*.md
+*cahcier*des*charges*.md
+
+**/application.properties
+application.properties
+application-*.properties
+application.yml
+application-*.yml
+application.yaml
+application-*.yaml
