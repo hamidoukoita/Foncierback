@@ -6,8 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "utilisateurs")
@@ -41,10 +44,9 @@ public class Utilisateur {
     @Column(nullable = false)
     private LocalDateTime dateCreation;
 
-    @PrePersist
-    protected void onCreate() {
-        if (dateCreation == null) {
-            dateCreation = LocalDateTime.now();
-        }
-    }
+    // --- Relations transverses ---
+
+    @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<Notification> notifications = new ArrayList<>();
 }
