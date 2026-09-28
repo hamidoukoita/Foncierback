@@ -16,9 +16,13 @@ public interface ProgrammeFoncierRepository extends JpaRepository<ProgrammeFonci
 
     boolean existsByNom(String nom);
 
+    boolean existsByNomAndIdNot(String nom, Long id);
+
     Optional<ProgrammeFoncier> findByNumeroTitreMere(String numeroTitreMere);
 
     boolean existsByNumeroTitreMere(String numeroTitreMere);
+
+    boolean existsByNumeroTitreMereAndIdNot(String numeroTitreMere, Long id);
 
     List<ProgrammeFoncier> findByStatut(StatutProgramme statut);
 
@@ -27,4 +31,6 @@ public interface ProgrammeFoncierRepository extends JpaRepository<ProgrammeFonci
     List<ProgrammeFoncier> findBySocietePromotriceIdAndStatut(Long societeId, StatutProgramme statut);
 
     List<ProgrammeFoncier> findByLieuContainingIgnoreCase(String lieu);
+
+    List<ProgrammeFoncier> findByNomContainingIgnoreCaseOrLieuContainingIgnoreCase(String nom, String lieu);
 }

@@ -17,6 +17,8 @@ public interface BienFoncierRepository extends JpaRepository<BienFoncier, Long>,
 
     boolean existsByReference(String reference);
 
+    boolean existsByReferenceAndIdNot(String reference, Long id);
+
     List<BienFoncier> findByStatut(StatutParcelle statut);
 
     List<BienFoncier> findByPrixBetween(BigDecimal prixMin, BigDecimal prixMax);

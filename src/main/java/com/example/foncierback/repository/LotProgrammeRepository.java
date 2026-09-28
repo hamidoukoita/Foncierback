@@ -20,6 +20,8 @@ public interface LotProgrammeRepository extends JpaRepository<LotProgramme, Long
 
     boolean existsByProgrammeFoncierIdAndNumeroLot(Long programmeFoncierId, String numeroLot);
 
+    boolean existsByProgrammeFoncierIdAndNumeroLotAndIdNot(Long programmeFoncierId, String numeroLot, Long id);
+
     long countByProgrammeFoncierId(Long programmeFoncierId);
 
     long countByProgrammeFoncierIdAndStatut(Long programmeFoncierId, StatutParcelle statut);

@@ -2,14 +2,13 @@ package com.example.foncierback.repository;
 
 import com.example.foncierback.entity.Creneau;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface CreneauRepository extends JpaRepository<Creneau, Long> {
-
+public interface CreneauRepository extends JpaRepository<Creneau, Long>, JpaSpecificationExecutor<Creneau> {
     List<Creneau> findBySocietePromotriceId(Long societeId);
-
     List<Creneau> findBySocietePromotriceIdAndDisponible(Long societeId, Boolean disponible);
 }
