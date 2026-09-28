@@ -16,7 +16,11 @@ public interface ParcelleIndividuelleRepository extends JpaRepository<ParcelleIn
 
     boolean existsByNumeroTitreFoncier(String numeroTitreFoncier);
 
+    boolean existsByNumeroTitreFoncierAndIdNot(String numeroTitreFoncier, Long id);
+
     List<ParcelleIndividuelle> findBySocietePromotriceId(Long societeId);
 
     List<ParcelleIndividuelle> findBySocietePromotriceIdAndStatut(Long societeId, StatutParcelle statut);
+
+    List<ParcelleIndividuelle> findByStatut(StatutParcelle statut);
 }
