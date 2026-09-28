@@ -17,8 +17,6 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long>, J
 
     List<RendezVous> findByAgentPromoteurId(Long agentId);
 
-    List<RendezVous> findByReservationId(Long reservationId);
-
     List<RendezVous> findByBienFoncierId(Long bienId);
 
     List<RendezVous> findByCreneauId(Long creneauId);
