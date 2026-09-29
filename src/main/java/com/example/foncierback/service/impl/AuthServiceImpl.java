@@ -38,11 +38,11 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getStatut() == StatutCompte.SUSPENDU || user.getStatut() == StatutCompte.DESACTIVE) {
-            throw new BadRequestException("Compte suspendu ou désactivé");
+            throw new BadRequestException("Votre compte est actuellement suspendu ou désactivé. Veuillez contacter le support.");
         }
 
         if (user.getStatut() != StatutCompte.ACTIF) {
-            throw new BadRequestException("Compte non actif : " + user.getStatut());
+            throw new BadRequestException("Compte non actif (statut: " + user.getStatut() + ")");
         }
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -57,6 +57,11 @@ public class AuthServiceImpl implements AuthService {
                 .telephone(user.getTelephone())
                 .role(userDetails.getRole())
                 .statut(user.getStatut())
+                .permissions(userDetails.getPermissions())
+                .societeId(userDetails.getSocieteId())
+                .societeNom(userDetails.getSocieteNom())
+                .fonctionLibelle(userDetails.getFonctionLibelle())
+                .niveauAccesCode(userDetails.getNiveauAccesCode())
                 .build();
     }
 

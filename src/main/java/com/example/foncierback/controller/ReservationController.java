@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ACQUEREUR')")
     @Operation(summary = "Créer une nouvelle réservation")
     public ResponseEntity<ApiResponse<ReservationResponse>> create(@Valid @RequestBody ReservationRequest request) {
         ReservationResponse response = reservationService.create(request);
@@ -31,20 +33,39 @@ public class ReservationController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Récupérer une réservation par son ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'ACQUEREUR')")
+    @Operation(summary = "Récupérer une réservation par ID")
     public ResponseEntity<ApiResponse<ReservationResponse>> getById(@PathVariable Long id) {
         ReservationResponse response = reservationService.getById(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Réservation récupérée avec succès", response));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Lister toutes les réservations")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getAll() {
         List<ReservationResponse> list = reservationService.getAll();
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des réservations", list));
     }
 
+    @GetMapping("/acquereur/{acquereurId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#acquereurId)")
+    @Operation(summary = "Lister les réservations d'un acquéreur")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getByAcquereur(@PathVariable Long acquereurId) {
+        List<ReservationResponse> list = reservationService.findByAcquereur(acquereurId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservations de l'acquéreur", list));
+    }
+
+    @GetMapping("/bien/{bienId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Lister les réservations associées à un bien foncier")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getByBien(@PathVariable Long bienId) {
+        List<ReservationResponse> list = reservationService.findByBien(bienId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservations du bien", list));
+    }
+
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Modifier une réservation existante")
     public ResponseEntity<ApiResponse<ReservationResponse>> update(
             @PathVariable Long id,
@@ -55,6 +76,7 @@ public class ReservationController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer une réservation")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         reservationService.delete(id);
@@ -62,6 +84,7 @@ public class ReservationController {
     }
 
     @PatchMapping("/{id}/confirmer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Confirmer une réservation")
     public ResponseEntity<ApiResponse<ReservationResponse>> confirmer(@PathVariable Long id) {
         ReservationResponse response = reservationService.confirmer(id);
@@ -69,16 +92,18 @@ public class ReservationController {
     }
 
     @PatchMapping("/{id}/refuser")
-    @Operation(summary = "Refuser une réservation")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Refuser une réservation avec motif")
     public ResponseEntity<ApiResponse<ReservationResponse>> refuser(
             @PathVariable Long id,
-            @RequestParam(required = false) String motif
+            @RequestParam String motif
     ) {
         ReservationResponse response = reservationService.refuser(id, motif);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation refusée avec succès", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation refusée", response));
     }
 
     @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Changer le statut d'une réservation")
     public ResponseEntity<ApiResponse<ReservationResponse>> changerStatut(
             @PathVariable Long id,
@@ -86,20 +111,6 @@ public class ReservationController {
             @RequestParam(required = false) String motifRefus
     ) {
         ReservationResponse response = reservationService.changerStatut(id, statut, motifRefus);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Statut de la réservation mis à jour avec succès", response));
-    }
-
-    @GetMapping("/acquereur/{acquereurId}")
-    @Operation(summary = "Lister les réservations d'un acquéreur")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> findByAcquereur(@PathVariable Long acquereurId) {
-        List<ReservationResponse> list = reservationService.findByAcquereur(acquereurId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Réservations de l'acquéreur", list));
-    }
-
-    @GetMapping("/bien/{bienId}")
-    @Operation(summary = "Lister les réservations associées à un bien foncier")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> findByBien(@PathVariable Long bienId) {
-        List<ReservationResponse> list = reservationService.findByBien(bienId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Réservations pour le bien foncier", list));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Statut de réservation mis à jour", response));
     }
 }
