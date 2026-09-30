@@ -2,7 +2,6 @@ package com.example.foncierback.config.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,6 +11,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -34,9 +34,29 @@ public class JwtService {
 
     public String generateToken(CustomUserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", userDetails.getRole());
         claims.put("id", userDetails.getUtilisateur().getId());
+        claims.put("role", userDetails.getRole());
+        claims.put("permissions", userDetails.getPermissions());
+
+        if (userDetails.getSocieteId() != null) {
+            claims.put("societeId", userDetails.getSocieteId());
+        }
+        if (userDetails.getNiveauAccesCode() != null) {
+            claims.put("niveauAcces", userDetails.getNiveauAccesCode());
+        }
+
         return buildToken(claims, userDetails.getUsername());
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractPermissions(String token) {
+        return extractClaim(token, claims -> (List<String>) claims.get("permissions"));
+    }
+
+    public Long extractSocieteId(String token) {
+        return extractClaim(token, claims -> claims.get("societeId") != null
+                ? Long.valueOf(claims.get("societeId").toString())
+                : null);
     }
 
     private String buildToken(Map<String, Object> claims, String subject) {
@@ -71,7 +91,6 @@ public class JwtService {
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        // Si la clé est en Base64 : Decoders.BASE64.decode(secret)
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

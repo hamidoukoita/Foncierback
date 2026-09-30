@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,26 +18,29 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/administrateurs")
 @RequiredArgsConstructor
-@Tag(name = "Administrateurs", description = "Gestion des administrateurs de la plateforme")
+@Tag(name = "Administrateurs", description = "Gestion des comptes administrateurs (SuperAdmin / Admin)")
 public class AdministrateurController {
 
     private final AdministrateurService administrateurService;
 
     @PostMapping
-    @Operation(summary = "Créer un nouvel administrateur")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Créer un nouvel administrateur (Admin uniquement)")
     public ResponseEntity<ApiResponse<AdministrateurResponse>> create(@Valid @RequestBody AdministrateurRequest request) {
         AdministrateurResponse response = administrateurService.create(request);
         return new ResponseEntity<>(new ApiResponse<>(true, "Administrateur créé avec succès", response), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Récupérer un administrateur par son ID")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Récupérer un administrateur par ID")
     public ResponseEntity<ApiResponse<AdministrateurResponse>> getById(@PathVariable Long id) {
         AdministrateurResponse response = administrateurService.getById(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Administrateur récupéré avec succès", response));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Lister tous les administrateurs")
     public ResponseEntity<ApiResponse<List<AdministrateurResponse>>> getAll() {
         List<AdministrateurResponse> list = administrateurService.getAll();
@@ -44,6 +48,7 @@ public class AdministrateurController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Modifier un administrateur existant")
     public ResponseEntity<ApiResponse<AdministrateurResponse>> update(
             @PathVariable Long id,
@@ -54,6 +59,7 @@ public class AdministrateurController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer un administrateur")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         administrateurService.delete(id);
