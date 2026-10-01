@@ -37,4 +37,16 @@ public class AuthController {
                 HttpStatus.CREATED
         );
     }
+
+    @PostMapping("/register-societe")
+    @Operation(summary = "Inscription publique d'une société promotrice et création du compte responsable")
+    public ResponseEntity<ApiResponse<com.example.foncierback.dto.response.SocietePromotriceResponse>> registerSociete(
+            @Valid @RequestBody com.example.foncierback.dto.request.RegisterSocieteRequest request
+    ) {
+        com.example.foncierback.dto.response.SocietePromotriceResponse response = authService.registerSociete(request);
+        return new ResponseEntity<>(
+                new ApiResponse<>(true, "Dossier d'agrément de la société promotrice enregistré avec succès", response),
+                HttpStatus.CREATED
+        );
+    }
 }

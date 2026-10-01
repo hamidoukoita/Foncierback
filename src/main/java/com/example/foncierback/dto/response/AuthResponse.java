@@ -29,6 +29,7 @@ public class AuthResponse {
     private List<String> permissions;
     private Long societeId;
     private String societeNom;
+    private Boolean estResponsableSociete;
     private String fonctionLibelle;
     private String niveauAccesCode;
 }

@@ -34,12 +34,23 @@ public class CustomUserDetails implements UserDetails {
         this.permissions = resolvePermissions(utilisateur, this.role);
 
         if (utilisateur instanceof AgentPromoteur agent) {
-            this.societeId = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getId() : null;
-            this.societeNom = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getNom() : null;
-            this.fonctionLibelle = agent.getTypeFonction() != null ? agent.getTypeFonction().getLibelle() : null;
-            this.niveauAccesCode = (agent.getTypeFonction() != null && agent.getTypeFonction().getNiveauAcces() != null)
-                    ? agent.getTypeFonction().getNiveauAcces().getCode()
-                    : null;
+            Long sId = null;
+            String sNom = null;
+            String fLibelle = null;
+            String nCode = null;
+            try {
+                sId = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getId() : null;
+                sNom = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getNom() : null;
+                fLibelle = agent.getTypeFonction() != null ? agent.getTypeFonction().getLibelle() : null;
+                nCode = (agent.getTypeFonction() != null && agent.getTypeFonction().getNiveauAcces() != null)
+                        ? agent.getTypeFonction().getNiveauAcces().getCode()
+                        : null;
+            } catch (Exception ignored) {
+            }
+            this.societeId = sId;
+            this.societeNom = sNom;
+            this.fonctionLibelle = fLibelle;
+            this.niveauAccesCode = nCode;
         } else {
             this.societeId = null;
             this.societeNom = null;

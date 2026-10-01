@@ -33,7 +33,7 @@ build/
 .vscode/
 src/main/resources/application.properties
 
-CAHIER_DES_CHARGES.md
+../CAHIER_DES_CHARGES.md
 [cC]ahier_[dD]es_[cC]harges.md
 *cahier*des*charges*.md
 *cahcier*des*charges*.md
