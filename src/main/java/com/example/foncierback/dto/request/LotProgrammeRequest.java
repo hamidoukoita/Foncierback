@@ -56,6 +56,9 @@ public class LotProgrammeRequest {
 
     private Double longitude;
 
+    /** Géométrie vectorielle JSON du lot dans le plan de masse. */
+    private String geometryJson;
+
     @NotNull(message = "Le statut est obligatoire")
     private StatutParcelle statut;
 

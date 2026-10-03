@@ -2,6 +2,7 @@ package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.LotProgrammeRequest;
+import com.example.foncierback.dto.request.LotProgrammeGeometryRequest;
 import com.example.foncierback.dto.response.LotProgrammeResponse;
 import com.example.foncierback.service.LotProgrammeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,16 @@ public class LotProgrammeController {
     ) {
         LotProgrammeResponse response = lotProgrammeService.update(id, request);
         return ResponseEntity.ok(new ApiResponse<>(true, "Lot de programme mis à jour avec succès", response));
+    }
+
+    @PatchMapping("/{id}/geometry")
+    @Operation(summary = "Enregistrer uniquement la géométrie d'un lot", description = "Met à jour le contour graphique sans modifier les données métier du lot")
+    public ResponseEntity<ApiResponse<LotProgrammeResponse>> updateGeometry(
+            @PathVariable Long id,
+            @Valid @RequestBody LotProgrammeGeometryRequest request
+    ) {
+        LotProgrammeResponse response = lotProgrammeService.updateGeometry(id, request.getGeometryJson());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Géométrie du lot enregistrée avec succès", response));
     }
 
     @DeleteMapping("/{id}")

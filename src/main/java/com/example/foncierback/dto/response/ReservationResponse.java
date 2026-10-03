@@ -23,4 +23,13 @@ public class ReservationResponse {
     private Long bienId;
     private Long acquereurId;
     private Long agentId;
+
+    // Contexte d'affichage issu des relations métier existantes.
+    private String bienReference;
+    private String bienDesignation;
+    private String programmeNom;
+    private java.math.BigDecimal montant;
+    private String acquereurNom;
+    private String acquereurTelephone;
+    private String agentNom;
 }

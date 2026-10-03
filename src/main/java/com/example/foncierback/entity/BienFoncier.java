@@ -63,6 +63,14 @@ public class BienFoncier {
     @Column(name = "longitude")
     private Double longitude;
 
+    /**
+     * Géométrie vectorielle du bien dans le plan de masse.
+     * Format JSON : {"type":"POLYGON","points":[{"x":10,"y":20}, ...]}
+     * Le champ reste nullable afin de conserver les biens existants sans géométrie.
+     */
+    @Column(name = "geometry_json", columnDefinition = "LONGTEXT")
+    private String geometryJson;
+
     @NotNull(message = "Le statut est obligatoire")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

@@ -24,6 +24,9 @@ public class LotProgrammeResponse {
     private Double profondeur;
     private Double latitude;
     private Double longitude;
+
+    /** Géométrie vectorielle JSON du lot dans le plan de masse. */
+    private String geometryJson;
     private StatutParcelle statut;
     private String numeroLot;
     private String numeroIlot;

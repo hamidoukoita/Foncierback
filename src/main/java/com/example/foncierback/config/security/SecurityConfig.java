@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/programmes-fonciers", "/api/programmes-fonciers/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lots-programmes", "/api/lots-programmes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/plans-masse", "/api/plans-masse/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/plans-masse-elements", "/api/plans-masse-elements/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/parcelles-individuelles", "/api/parcelles-individuelles/**").permitAll()
                         .anyRequest().authenticated()
                 )

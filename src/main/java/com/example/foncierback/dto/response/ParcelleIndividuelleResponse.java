@@ -25,6 +25,9 @@ public class ParcelleIndividuelleResponse {
     private Double profondeur;
     private Double latitude;
     private Double longitude;
+
+    /** Géométrie vectorielle JSON de la parcelle. */
+    private String geometryJson;
     private StatutParcelle statut;
     private Boolean murCloture;
     private Boolean eauSomapep;
