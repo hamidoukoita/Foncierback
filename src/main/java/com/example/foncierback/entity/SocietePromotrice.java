@@ -97,4 +97,9 @@ public class SocietePromotrice {
     @OneToMany(mappedBy = "societePromotrice", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<Creneau> creneaux = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "societePromotrice", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<DocumentKyc> documentsKyc = new ArrayList<>();
 }

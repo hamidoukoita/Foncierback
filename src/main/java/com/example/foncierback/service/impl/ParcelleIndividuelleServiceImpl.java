@@ -49,6 +49,9 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
         if (request.getSocieteId() != null) {
             societe = societePromotriceRepository.findById(request.getSocieteId())
                     .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
+            if (societe.getStatutAgrement() != com.example.foncierback.entity.enums.StatutAgrement.VERIFIER) {
+                throw new IllegalStateException("La société n'a pas encore validé son dossier KYC. Création de parcelle bloquée.");
+            }
         }
 
         List<Commoditer> commodites = new ArrayList<>();
