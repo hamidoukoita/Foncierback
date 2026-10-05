@@ -67,6 +67,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .profondeur(request.getProfondeur())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .geometryJson(request.getGeometryJson())
                 .statut(request.getStatut())
                 .numeroTitreFoncier(request.getNumeroTitreFoncier())
                 .murCloture(Boolean.TRUE.equals(request.getMurCloture()))
@@ -131,6 +132,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
         existing.setProfondeur(request.getProfondeur());
         existing.setLatitude(request.getLatitude());
         existing.setLongitude(request.getLongitude());
+        existing.setGeometryJson(request.getGeometryJson());
         existing.setStatut(request.getStatut());
         existing.setMurCloture(Boolean.TRUE.equals(request.getMurCloture()));
         existing.setEauSomapep(Boolean.TRUE.equals(request.getEauSomapep()));
@@ -182,6 +184,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .profondeur(entity.getProfondeur())
                 .latitude(entity.getLatitude())
                 .longitude(entity.getLongitude())
+                .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
                 .murCloture(entity.getMurCloture())
                 .eauSomapep(entity.getEauSomapep())

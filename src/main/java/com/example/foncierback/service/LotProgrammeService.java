@@ -16,6 +16,8 @@ public interface LotProgrammeService {
 
     LotProgrammeResponse update(Long id, LotProgrammeRequest request);
 
+    LotProgrammeResponse updateGeometry(Long id, String geometryJson);
+
     void delete(Long id);
 
     List<LotProgrammeResponse> getByProgrammeId(Long programmeId);

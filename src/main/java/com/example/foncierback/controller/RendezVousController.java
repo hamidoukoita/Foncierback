@@ -102,4 +102,11 @@ public class RendezVousController {
         List<RendezVousResponse> list = rendezVousService.findByAgent(agentId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Rendez-vous de l'agent", list));
     }
+
+    @GetMapping("/societe/{societeId}")
+    @Operation(summary = "Lister les rendez-vous d'une société promotrice")
+    public ResponseEntity<ApiResponse<List<RendezVousResponse>>> findBySociete(@PathVariable Long societeId) {
+        List<RendezVousResponse> list = rendezVousService.findBySociete(societeId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Rendez-vous de la société promotrice", list));
+    }
 }

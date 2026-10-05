@@ -27,4 +27,15 @@ public class RendezVousResponse {
     private Long agentId;
     private Long bienId;
     private Long creneauId;
+
+    // Contexte d'affichage issu des relations existantes.
+    private String bienReference;
+    private String bienDesignation;
+    private String programmeNom;
+    private String acquereurNom;
+    private String acquereurTelephone;
+    private String agentNom;
+    private String creneauHeure;
+    private String creneauHeureDebut;
+    private String creneauHeureFin;
 }
