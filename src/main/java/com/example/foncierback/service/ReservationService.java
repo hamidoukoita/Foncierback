@@ -29,5 +29,7 @@ public interface ReservationService {
 
     List<ReservationResponse> findByBien(Long bienId);
 
+    List<ReservationResponse> findBySociete(Long societeId);
+
     Reservation findEntityById(Long id);
 }

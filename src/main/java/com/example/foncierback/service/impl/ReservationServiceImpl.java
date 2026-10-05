@@ -8,6 +8,8 @@ import com.example.foncierback.entity.Acquereur;
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Reservation;
+import com.example.foncierback.entity.LotProgramme;
+import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.enums.StatutReservation;
 import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
@@ -194,12 +196,46 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ReservationResponse> findBySociete(Long societeId) {
+        return reservationRepository.findBySocieteId(societeId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Reservation findEntityById(Long id) {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Réservation introuvable avec l'identifiant : " + id));
     }
 
     private ReservationResponse mapToResponse(Reservation entity) {
+        BienFoncier bien = entity.getBienFoncier();
+
+        String bienDesignation = null;
+        String programmeNom = null;
+        if (bien instanceof LotProgramme lot) {
+            bienDesignation = lot.getNumeroLot();
+            if (lot.getProgrammeFoncier() != null) {
+                programmeNom = lot.getProgrammeFoncier().getNom();
+            }
+        } else if (bien instanceof ParcelleIndividuelle parcelle) {
+            bienDesignation = parcelle.getReference();
+        }
+
+        String acquereurNom = null;
+        String acquereurTelephone = null;
+        if (entity.getAcquereur() != null) {
+            acquereurNom = (entity.getAcquereur().getPrenom() + " " + entity.getAcquereur().getNom()).trim();
+            acquereurTelephone = entity.getAcquereur().getTelephone();
+        }
+
+        String agentNom = null;
+        if (entity.getAgentPromoteur() != null) {
+            agentNom = (entity.getAgentPromoteur().getPrenom() + " " + entity.getAgentPromoteur().getNom()).trim();
+        }
+
         return ReservationResponse.builder()
                 .id(entity.getId())
                 .numeroDossier(entity.getNumeroDossier())
@@ -207,9 +243,16 @@ public class ReservationServiceImpl implements ReservationService {
                 .statut(entity.getStatut())
                 .motifRefus(entity.getMotifRefus())
                 .dateTraitement(entity.getDateTraitement())
-                .bienId(entity.getBienFoncier() != null ? entity.getBienFoncier().getId() : null)
+                .bienId(bien != null ? bien.getId() : null)
                 .acquereurId(entity.getAcquereur() != null ? entity.getAcquereur().getId() : null)
                 .agentId(entity.getAgentPromoteur() != null ? entity.getAgentPromoteur().getId() : null)
+                .bienReference(bien != null ? bien.getReference() : null)
+                .bienDesignation(bienDesignation)
+                .programmeNom(programmeNom)
+                .montant(bien != null ? bien.getPrix() : null)
+                .acquereurNom(acquereurNom)
+                .acquereurTelephone(acquereurTelephone)
+                .agentNom(agentNom)
                 .build();
     }
 }

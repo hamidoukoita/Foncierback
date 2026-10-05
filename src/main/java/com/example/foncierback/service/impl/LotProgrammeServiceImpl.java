@@ -61,6 +61,7 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
                 .profondeur(request.getProfondeur())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .geometryJson(request.getGeometryJson())
                 .statut(request.getStatut())
                 .numeroLot(request.getNumeroLot())
                 .numeroIlot(request.getNumeroIlot())
@@ -125,8 +126,20 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
         existing.setProfondeur(request.getProfondeur());
         existing.setLatitude(request.getLatitude());
         existing.setLongitude(request.getLongitude());
+        // Ne pas effacer la forme du lot quand la requête ne transporte pas de géométrie.
+        if (request.getGeometryJson() != null) {
+            existing.setGeometryJson(request.getGeometryJson());
+        }
         existing.setStatut(request.getStatut());
 
+        LotProgramme updated = lotProgrammeRepository.save(existing);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public LotProgrammeResponse updateGeometry(Long id, String geometryJson) {
+        LotProgramme existing = findEntityById(id);
+        existing.setGeometryJson(geometryJson);
         LotProgramme updated = lotProgrammeRepository.save(existing);
         return mapToResponse(updated);
     }
@@ -170,6 +183,7 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
                 .profondeur(entity.getProfondeur())
                 .latitude(entity.getLatitude())
                 .longitude(entity.getLongitude())
+                .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
                 .numeroLot(entity.getNumeroLot())
                 .numeroIlot(entity.getNumeroIlot())

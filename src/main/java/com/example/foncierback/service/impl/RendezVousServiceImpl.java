@@ -7,6 +7,8 @@ import com.example.foncierback.entity.Acquereur;
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Creneau;
+import com.example.foncierback.entity.LotProgramme;
+import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.RendezVous;
 import com.example.foncierback.entity.enums.StatutRendezVous;
 import com.example.foncierback.repository.AcquereurRepository;
@@ -200,12 +202,56 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<RendezVousResponse> findBySociete(Long societeId) {
+        return rendezVousRepository.findBySocieteId(societeId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public RendezVous findEntityById(Long id) {
         return rendezVousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous introuvable avec l'identifiant : " + id));
     }
 
     private RendezVousResponse mapToResponse(RendezVous entity) {
+        BienFoncier bien = entity.getBienFoncier();
+        String bienDesignation = null;
+        String programmeNom = null;
+        if (bien instanceof LotProgramme lot) {
+            bienDesignation = lot.getNumeroLot();
+            if (lot.getProgrammeFoncier() != null) {
+                programmeNom = lot.getProgrammeFoncier().getNom();
+            }
+        } else if (bien instanceof ParcelleIndividuelle parcelle) {
+            bienDesignation = parcelle.getReference();
+        }
+
+        String acquereurNom = null;
+        String acquereurTelephone = null;
+        if (entity.getAcquereur() != null) {
+            acquereurNom = (entity.getAcquereur().getPrenom() + " " + entity.getAcquereur().getNom()).trim();
+            acquereurTelephone = entity.getAcquereur().getTelephone();
+        }
+
+        String agentNom = null;
+        if (entity.getAgentPromoteur() != null) {
+            agentNom = (entity.getAgentPromoteur().getPrenom() + " " + entity.getAgentPromoteur().getNom()).trim();
+        }
+
+        String creneauHeure = null;
+        String creneauHeureDebut = null;
+        String creneauHeureFin = null;
+        if (entity.getCreneau() != null) {
+            creneauHeure = entity.getCreneau().getHeure();
+            creneauHeureDebut = entity.getCreneau().getHeureDebut() != null
+                    ? entity.getCreneau().getHeureDebut().toString() : null;
+            creneauHeureFin = entity.getCreneau().getHeureFin() != null
+                    ? entity.getCreneau().getHeureFin().toString() : null;
+        }
+
         return RendezVousResponse.builder()
                 .id(entity.getId())
                 .dateRendezVous(entity.getDateRendezVous())
@@ -217,8 +263,17 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .dateTraitement(entity.getDateTraitement())
                 .acquereurId(entity.getAcquereur() != null ? entity.getAcquereur().getId() : null)
                 .agentId(entity.getAgentPromoteur() != null ? entity.getAgentPromoteur().getId() : null)
-                .bienId(entity.getBienFoncier() != null ? entity.getBienFoncier().getId() : null)
+                .bienId(bien != null ? bien.getId() : null)
                 .creneauId(entity.getCreneau() != null ? entity.getCreneau().getId() : null)
+                .bienReference(bien != null ? bien.getReference() : null)
+                .bienDesignation(bienDesignation)
+                .programmeNom(programmeNom)
+                .acquereurNom(acquereurNom)
+                .acquereurTelephone(acquereurTelephone)
+                .agentNom(agentNom)
+                .creneauHeure(creneauHeure)
+                .creneauHeureDebut(creneauHeureDebut)
+                .creneauHeureFin(creneauHeureFin)
                 .build();
     }
 }

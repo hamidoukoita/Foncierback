@@ -24,7 +24,7 @@ public class AgentPromoteurController {
     private final AgentPromoteurService agentPromoteurService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#request.societePromotriceId))")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#request.societeId))")
     @Operation(summary = "Créer un nouvel agent promoteur (Admin ou Responsable Société)")
     public ResponseEntity<ApiResponse<AgentPromoteurResponse>> create(@Valid @RequestBody AgentPromoteurRequest request) {
         AgentPromoteurResponse response = agentPromoteurService.create(request);

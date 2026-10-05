@@ -64,6 +64,14 @@ public class ReservationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Réservations du bien", list));
     }
 
+    @GetMapping("/societe/{societeId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
+    @Operation(summary = "Lister les réservations d'une société promotrice")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getBySociete(@PathVariable Long societeId) {
+        List<ReservationResponse> list = reservationService.findBySociete(societeId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservations de la société promotrice", list));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Modifier une réservation existante")

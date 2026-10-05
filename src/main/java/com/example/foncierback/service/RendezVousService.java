@@ -29,5 +29,7 @@ public interface RendezVousService {
 
     List<RendezVousResponse> findByAgent(Long agentId);
 
+    List<RendezVousResponse> findBySociete(Long societeId);
+
     RendezVous findEntityById(Long id);
 }

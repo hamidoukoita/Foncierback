@@ -13,6 +13,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "plans_masse")
@@ -48,6 +50,11 @@ public class PlanMasse {
     @JoinColumn(name = "programme_id", nullable = false, unique = true)
     @JsonIgnore
     private ProgrammeFoncier programmeFoncier;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "planMasse", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<PlanMasseElement> elements = new ArrayList<>();
 
     @PrePersist
     @PreUpdate

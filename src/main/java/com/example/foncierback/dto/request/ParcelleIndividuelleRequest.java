@@ -46,6 +46,9 @@ public class ParcelleIndividuelleRequest {
 
     private Double longitude;
 
+    /** Géométrie vectorielle JSON de la parcelle. */
+    private String geometryJson;
+
     @NotNull(message = "Le statut est obligatoire")
     private StatutParcelle statut;
 
