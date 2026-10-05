@@ -126,7 +126,10 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
         existing.setProfondeur(request.getProfondeur());
         existing.setLatitude(request.getLatitude());
         existing.setLongitude(request.getLongitude());
-        existing.setGeometryJson(request.getGeometryJson());
+        // Ne pas effacer la forme du lot quand la requête ne transporte pas de géométrie.
+        if (request.getGeometryJson() != null) {
+            existing.setGeometryJson(request.getGeometryJson());
+        }
         existing.setStatut(request.getStatut());
 
         LotProgramme updated = lotProgrammeRepository.save(existing);

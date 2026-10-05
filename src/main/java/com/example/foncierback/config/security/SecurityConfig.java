@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/plans-masse", "/api/plans-masse/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/plans-masse-elements", "/api/plans-masse-elements/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/parcelles-individuelles", "/api/parcelles-individuelles/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/medias/**", "/uploads/medias/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
