@@ -40,6 +40,9 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
         if (request.getSocieteId() != null) {
             societe = societePromotriceRepository.findById(request.getSocieteId())
                     .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
+            if (societe.getStatutAgrement() != com.example.foncierback.entity.enums.StatutAgrement.VERIFIER) {
+                throw new IllegalStateException("La société n'a pas encore validé son dossier KYC. Création de programme bloquée.");
+            }
         }
 
         ProgrammeFoncier programme = ProgrammeFoncier.builder()
