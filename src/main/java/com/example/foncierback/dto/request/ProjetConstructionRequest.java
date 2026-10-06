@@ -1,6 +1,8 @@
 package com.example.foncierback.dto.request;
 
 import com.example.foncierback.entity.enums.StatutProjet;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -33,6 +35,9 @@ public class ProjetConstructionRequest {
     @Positive(message = "La superficie doit être strictement positive")
     private Double superficieTerrain;
 
+    @Size(max = 50, message = "Le type de terrain ne doit pas dépasser 50 caractères")
+    private String typeTerrain;
+
     private String description;
 
     private BigDecimal budgetEstime;
@@ -40,6 +45,15 @@ public class ProjetConstructionRequest {
     private String documentTfUrl;
 
     private StatutProjet statut;
+
+    @Min(value = 0, message = "La progression ne peut pas être négative")
+    @Max(value = 100, message = "La progression ne peut pas dépasser 100")
+    private Integer progression;
+
+    @Size(max = 100, message = "L'étape ne doit pas dépasser 100 caractères")
+    private String etapeAvancement;
+
+    private String commentaireAvancement;
 
     private String motifRefus;
 

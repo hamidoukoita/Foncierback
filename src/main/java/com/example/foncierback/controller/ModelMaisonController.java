@@ -9,61 +9,69 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/modeles-maison")
 @RequiredArgsConstructor
-@Tag(name = "Modèles Maison", description = "Gestion des modèles de maison de construction")
+@Tag(name = "Modèles Maison", description = "Catalogue des modèles de maison proposés aux acquéreurs")
 public class ModelMaisonController {
 
     private final ModelMaisonService modelMaisonService;
 
     @PostMapping
-    @Operation(summary = "Créer un nouveau modèle de maison")
     public ResponseEntity<ApiResponse<ModelMaisonResponse>> create(@Valid @RequestBody ModelMaisonRequest request) {
-        ModelMaisonResponse response = modelMaisonService.create(request);
-        return new ResponseEntity<>(new ApiResponse<>(true, "Modèle de maison créé avec succès", response), HttpStatus.CREATED);
+        return new ResponseEntity<>(new ApiResponse<>(true, "Modèle de maison créé avec succès", modelMaisonService.create(request)), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Récupérer un modèle de maison par son ID")
     public ResponseEntity<ApiResponse<ModelMaisonResponse>> getById(@PathVariable Long id) {
-        ModelMaisonResponse response = modelMaisonService.getById(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle de maison récupéré avec succès", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle récupéré avec succès", modelMaisonService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Lister tous les modèles de maison")
-    public ResponseEntity<ApiResponse<List<ModelMaisonResponse>>> getAll() {
-        List<ModelMaisonResponse> list = modelMaisonService.getAll();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Liste des modèles de maison", list));
+    public ResponseEntity<ApiResponse<List<ModelMaisonResponse>>> getAll(@RequestParam(required = false) Long societeId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Liste des modèles de maison", modelMaisonService.getAll(societeId)));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Modifier un modèle de maison existant")
-    public ResponseEntity<ApiResponse<ModelMaisonResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody ModelMaisonRequest request
-    ) {
-        ModelMaisonResponse response = modelMaisonService.update(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle de maison mis à jour avec succès", response));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Supprimer un modèle de maison")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        modelMaisonService.delete(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle de maison supprimé avec succès", null));
+    @GetMapping("/compatibles")
+    @Operation(summary = "Lister les modèles compatibles avec un terrain")
+    public ResponseEntity<ApiResponse<List<ModelMaisonResponse>>> compatibles(
+            @RequestParam(required = false) Double surfaceTerrain,
+            @RequestParam(required = false) String typeTerrain,
+            @RequestParam(required = false) Long societeId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Modèles compatibles avec le terrain",
+                modelMaisonService.findCompatibles(surfaceTerrain, typeTerrain, societeId)));
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Rechercher des modèles de maison par mot-clé dans le libellé")
     public ResponseEntity<ApiResponse<List<ModelMaisonResponse>>> search(@RequestParam String keyword) {
-        List<ModelMaisonResponse> list = modelMaisonService.searchByLibeller(keyword);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Résultats de recherche", list));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Résultats de recherche", modelMaisonService.searchByLibeller(keyword)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ModelMaisonResponse>> update(@PathVariable Long id, @Valid @RequestBody ModelMaisonRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle mis à jour avec succès", modelMaisonService.update(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        modelMaisonService.delete(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle supprimé avec succès", null));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ModelMaisonResponse>> uploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Image du modèle ajoutée avec succès", modelMaisonService.uploadImage(id, file)));
+    }
+
+    @PostMapping(value = "/{id}/plan", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ModelMaisonResponse>> uploadPlan(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Plan de maison ajouté avec succès", modelMaisonService.uploadPlan(id, file)));
     }
 }
