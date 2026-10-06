@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/** Expose les médias enregistrés sur disque sous /uploads/medias/**. */
+/** Expose les médias généraux et les fichiers des modèles de maison enregistrés sur disque. */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
@@ -19,18 +19,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        Path dossier = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("medias");
-        try {
-            Files.createDirectories(dossier);
-        } catch (IOException ignored) {
-            // Le dossier sera recréé lors du premier envoi.
-        }
-        String emplacement = dossier.toUri().toString();
-        if (!emplacement.endsWith("/")) {
-            emplacement += "/";
-        }
-        registry.addResourceHandler("/uploads/medias/**")
-                .addResourceLocations(emplacement)
-                .setCachePeriod(3600);
+        Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+        register(registry, root.resolve("medias"), "/uploads/medias/**");
+        register(registry, root.resolve("modeles-maison"), "/uploads/modeles-maison/**");
+    }
+
+    private void register(ResourceHandlerRegistry registry, Path directory, String pattern) {
+        try { Files.createDirectories(directory); } catch (IOException ignored) { }
+        String location = directory.toUri().toString();
+        if (!location.endsWith("/")) location += "/";
+        registry.addResourceHandler(pattern).addResourceLocations(location).setCachePeriod(3600);
     }
 }

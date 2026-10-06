@@ -20,15 +20,27 @@ public class ProjetConstructionResponse {
     private String numeroTitreFoncier;
     private String localisationTerrain;
     private Double superficieTerrain;
+    private String typeTerrain;
     private String description;
     private BigDecimal budgetEstime;
     private String documentTfUrl;
     private StatutProjet statut;
+    private Integer progression;
+    private String etapeAvancement;
+    private String commentaireAvancement;
+    private LocalDateTime dateDerniereMiseAJour;
     private String motifRefus;
     private LocalDateTime dateDemande;
     private LocalDateTime dateTraitement;
     private Long acquereurId;
+    private String acquereurNom;
+    private String acquereurTelephone;
     private Long modelMaisonId;
+    private String modelMaisonLibeller;
+    private String modelMaisonImageUrl;
+    private String modelMaisonPlanUrl;
     private Long societeId;
+    private String societeNom;
     private Long agentId;
+    private String agentNom;
 }

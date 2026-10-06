@@ -1,6 +1,7 @@
 package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
+import com.example.foncierback.dto.request.AvancementProjetRequest;
 import com.example.foncierback.dto.request.ProjetConstructionRequest;
 import com.example.foncierback.dto.response.ProjetConstructionResponse;
 import com.example.foncierback.service.ProjetConstructionService;
@@ -17,77 +18,70 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/projets-construction")
 @RequiredArgsConstructor
-@Tag(name = "Projets de Construction", description = "Gestion des demandes et projets de construction")
+@Tag(name = "Projets de Construction", description = "Demandes, choix des modèles et suivi de l'avancement des constructions")
 public class ProjetConstructionController {
 
     private final ProjetConstructionService projetConstructionService;
 
     @PostMapping
-    @Operation(summary = "Créer une nouvelle demande de projet de construction")
     public ResponseEntity<ApiResponse<ProjetConstructionResponse>> create(@Valid @RequestBody ProjetConstructionRequest request) {
-        ProjetConstructionResponse response = projetConstructionService.create(request);
-        return new ResponseEntity<>(new ApiResponse<>(true, "Projet de construction créé avec succès", response), HttpStatus.CREATED);
+        return new ResponseEntity<>(new ApiResponse<>(true, "Projet de construction créé avec succès", projetConstructionService.create(request)), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Récupérer un projet de construction par son ID")
     public ResponseEntity<ApiResponse<ProjetConstructionResponse>> getById(@PathVariable Long id) {
-        ProjetConstructionResponse response = projetConstructionService.getById(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projet de construction récupéré avec succès", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projet récupéré avec succès", projetConstructionService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Lister tous les projets de construction")
     public ResponseEntity<ApiResponse<List<ProjetConstructionResponse>>> getAll() {
-        List<ProjetConstructionResponse> list = projetConstructionService.getAll();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Liste des projets de construction", list));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Liste des projets de construction", projetConstructionService.getAll()));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Modifier un projet de construction existant")
-    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody ProjetConstructionRequest request
-    ) {
-        ProjetConstructionResponse response = projetConstructionService.update(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projet de construction mis à jour avec succès", response));
+    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> update(@PathVariable Long id, @Valid @RequestBody ProjetConstructionRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projet mis à jour avec succès", projetConstructionService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Supprimer un projet de construction")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         projetConstructionService.delete(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projet de construction supprimé avec succès", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projet supprimé avec succès", null));
     }
 
     @PatchMapping("/{id}/valider")
-    @Operation(summary = "Valider un projet de construction")
     public ResponseEntity<ApiResponse<ProjetConstructionResponse>> valider(@PathVariable Long id) {
-        ProjetConstructionResponse response = projetConstructionService.valider(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projet de construction validé avec succès", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projet validé avec succès", projetConstructionService.valider(id)));
     }
 
     @PatchMapping("/{id}/refuser")
-    @Operation(summary = "Refuser un projet de construction")
-    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> refuser(
+    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> refuser(@PathVariable Long id, @RequestParam(required = false) String motif) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projet refusé avec succès", projetConstructionService.refuser(id, motif)));
+    }
+
+    @PatchMapping("/{id}/modele/{modelMaisonId}")
+    @Operation(summary = "Associer un modèle de maison compatible à un projet")
+    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> changerModele(
+            @PathVariable Long id, @PathVariable Long modelMaisonId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Modèle du projet mis à jour avec succès",
+                projetConstructionService.changerModele(id, modelMaisonId)));
+    }
+
+    @PatchMapping("/{id}/avancement")
+    @Operation(summary = "Mettre à jour l'avancement d'un projet")
+    public ResponseEntity<ApiResponse<ProjetConstructionResponse>> avancement(
             @PathVariable Long id,
-            @RequestParam(required = false) String motif
-    ) {
-        ProjetConstructionResponse response = projetConstructionService.refuser(id, motif);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projet de construction refusé avec succès", response));
+            @Valid @RequestBody AvancementProjetRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Avancement mis à jour avec succès", projetConstructionService.mettreAJourAvancement(id, request)));
     }
 
     @GetMapping("/acquereur/{acquereurId}")
-    @Operation(summary = "Lister les projets de construction d'un acquéreur")
     public ResponseEntity<ApiResponse<List<ProjetConstructionResponse>>> findByAcquereur(@PathVariable Long acquereurId) {
-        List<ProjetConstructionResponse> list = projetConstructionService.findByAcquereur(acquereurId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projets de construction de l'acquéreur", list));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projets de construction de l'acquéreur", projetConstructionService.findByAcquereur(acquereurId)));
     }
 
     @GetMapping("/societe/{societeId}")
-    @Operation(summary = "Lister les projets de construction d'une société promotrice")
     public ResponseEntity<ApiResponse<List<ProjetConstructionResponse>>> findBySociete(@PathVariable Long societeId) {
-        List<ProjetConstructionResponse> list = projetConstructionService.findBySociete(societeId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Projets de construction de la société", list));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Projets de construction de la société", projetConstructionService.findBySociete(societeId)));
     }
 }
