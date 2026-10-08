@@ -240,6 +240,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .id(entity.getId())
                 .numeroDossier(entity.getNumeroDossier())
                 .dateReservation(entity.getDateReservation())
+                .dateExpiration(entity.getDateExpiration())
                 .statut(entity.getStatut())
                 .motifRefus(entity.getMotifRefus())
                 .dateTraitement(entity.getDateTraitement())

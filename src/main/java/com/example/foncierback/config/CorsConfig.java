@@ -15,9 +15,8 @@ public class CorsConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:4200",
-                "http://localhost:3000"
+        configuration.setAllowedOriginPatterns(List.of(
+                "*" // Autorise toutes les origines pour le développement Flutter Web
         ));
 
         configuration.setAllowedMethods(List.of(

@@ -46,6 +46,10 @@ public class Reservation {
     @Column(name = "date_traitement")
     private LocalDateTime dateTraitement;
 
+    @Column(name = "date_expiration")
+    private LocalDateTime dateExpiration;
+
+
     // --- Cardinalités / Relations ---
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -71,6 +75,9 @@ public class Reservation {
     protected void onCreate() {
         if (this.dateReservation == null) {
             this.dateReservation = LocalDateTime.now();
+        }
+        if (this.dateExpiration == null) {
+            this.dateExpiration = this.dateReservation.plusHours(24);
         }
         if (this.statut == null) {
             this.statut = StatutReservation.EN_ATTENTE;
