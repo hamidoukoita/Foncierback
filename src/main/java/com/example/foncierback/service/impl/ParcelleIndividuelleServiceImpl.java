@@ -130,15 +130,32 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
         existing.setPrix(request.getPrix());
         existing.setFacade(request.getFacade());
         existing.setProfondeur(request.getProfondeur());
-        existing.setLatitude(request.getLatitude());
-        existing.setLongitude(request.getLongitude());
-        existing.setGeometryJson(request.getGeometryJson());
+        // Les champs non transmis par la requête sont conservés (position, plan, viabilisation, société).
+        if (request.getLatitude() != null) {
+            existing.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            existing.setLongitude(request.getLongitude());
+        }
+        if (request.getGeometryJson() != null) {
+            existing.setGeometryJson(request.getGeometryJson());
+        }
         existing.setStatut(request.getStatut());
-        existing.setMurCloture(Boolean.TRUE.equals(request.getMurCloture()));
-        existing.setEauSomapep(Boolean.TRUE.equals(request.getEauSomapep()));
-        existing.setElectriciteEdm(Boolean.TRUE.equals(request.getElectriciteEdm()));
-        existing.setVoieBitumee(Boolean.TRUE.equals(request.getVoieBitumee()));
-        existing.setSocietePromotrice(societe);
+        if (request.getMurCloture() != null) {
+            existing.setMurCloture(request.getMurCloture());
+        }
+        if (request.getEauSomapep() != null) {
+            existing.setEauSomapep(request.getEauSomapep());
+        }
+        if (request.getElectriciteEdm() != null) {
+            existing.setElectriciteEdm(request.getElectriciteEdm());
+        }
+        if (request.getVoieBitumee() != null) {
+            existing.setVoieBitumee(request.getVoieBitumee());
+        }
+        if (societe != null) {
+            existing.setSocietePromotrice(societe);
+        }
 
         ParcelleIndividuelle updated = parcelleIndividuelleRepository.save(existing);
         return mapToResponse(updated);
