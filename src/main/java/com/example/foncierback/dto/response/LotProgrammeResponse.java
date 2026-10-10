@@ -28,6 +28,8 @@ public class LotProgrammeResponse {
     /** Géométrie vectorielle JSON du lot dans le plan de masse. */
     private String geometryJson;
     private StatutParcelle statut;
+    /** Le bien accepte-t-il plusieurs réservations actives en parallèle ? */
+    private Boolean reservationMultiple;
     private String numeroLot;
     private String numeroIlot;
     private String numeroIlotLotissement;

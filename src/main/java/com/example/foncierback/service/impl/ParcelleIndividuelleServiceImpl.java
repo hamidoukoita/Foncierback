@@ -203,6 +203,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .longitude(entity.getLongitude())
                 .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
+                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
                 .murCloture(entity.getMurCloture())
                 .eauSomapep(entity.getEauSomapep())
                 .electriciteEdm(entity.getElectriciteEdm())

@@ -46,6 +46,13 @@ public class ReservationServiceImpl implements ReservationService {
         BienFoncier bien = bienFoncierRepository.findById(request.getBienId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + request.getBienId()));
 
+        // Règle d'autorisation : un bien non « réservable plusieurs fois » n'accepte qu'une réservation active.
+        if (!Boolean.TRUE.equals(bien.getReservationMultiple())
+                && reservationRepository.existsByBienFoncierIdAndStatutIn(
+                        bien.getId(), List.of(StatutReservation.EN_ATTENTE, StatutReservation.CONFIRMER))) {
+            throw new BadRequestException("Ce bien a déjà une réservation active et n'autorise pas les réservations multiples");
+        }
+
         Acquereur acquereur = null;
         if (request.getAcquereurId() != null) {
             acquereur = acquereurRepository.findById(request.getAcquereurId())
@@ -148,6 +155,7 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationResponse changerStatut(Long id, StatutReservation statut, String motifRefus) {
         Reservation existing = findEntityById(id);
         if (statut == StatutReservation.CONFIRMER) {
+            verifierUniciteConfirmation(existing);
             existing.confirmer();
         } else if (statut == StatutReservation.REFUSER) {
             existing.refuser(motifRefus);
@@ -163,6 +171,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ReservationResponse confirmer(Long id) {
         Reservation existing = findEntityById(id);
+        verifierUniciteConfirmation(existing);
         existing.confirmer();
         Reservation saved = reservationRepository.save(existing);
         return mapToResponse(saved);
@@ -174,6 +183,16 @@ public class ReservationServiceImpl implements ReservationService {
         existing.refuser(motifRefus);
         Reservation saved = reservationRepository.save(existing);
         return mapToResponse(saved);
+    }
+
+    /** Un bien en réservation unique ne peut pas avoir deux réservations confirmées. */
+    private void verifierUniciteConfirmation(Reservation reservation) {
+        BienFoncier bien = reservation.getBienFoncier();
+        if (bien != null && !Boolean.TRUE.equals(bien.getReservationMultiple())
+                && reservationRepository.existsByBienFoncierIdAndStatutAndIdNot(
+                        bien.getId(), StatutReservation.CONFIRMER, reservation.getId())) {
+            throw new BadRequestException("Ce bien a déjà une réservation confirmée et n'autorise pas les réservations multiples");
+        }
     }
 
     @Override
