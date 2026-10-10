@@ -10,7 +10,9 @@ import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.enums.StatutParcelle;
 import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.service.BienFoncierService;
+import com.example.foncierback.config.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,28 @@ public class BienFoncierServiceImpl implements BienFoncierService {
     }
 
     @Override
+    public BienFoncierResponse updateReservationMultiple(Long id, boolean autorise) {
+        BienFoncier bien = findEntityById(id);
+
+        // Un agent ne peut modifier que les biens de sa propre société promotrice (l'ADMIN peut tout modifier).
+        if (!SecurityUtils.isAdmin()) {
+            Long societeBien = null;
+            if (bien instanceof LotProgramme lot && lot.getProgrammeFoncier() != null
+                    && lot.getProgrammeFoncier().getSocietePromotrice() != null) {
+                societeBien = lot.getProgrammeFoncier().getSocietePromotrice().getId();
+            } else if (bien instanceof ParcelleIndividuelle parcelle && parcelle.getSocietePromotrice() != null) {
+                societeBien = parcelle.getSocietePromotrice().getId();
+            }
+            if (societeBien == null || !SecurityUtils.belongsToSocieteOrAdmin(societeBien)) {
+                throw new AccessDeniedException("Ce bien n'appartient pas à votre société promotrice");
+            }
+        }
+
+        bien.setReservationMultiple(autorise);
+        return mapToResponse(bienFoncierRepository.save(bien));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public BienFoncier findEntityById(Long id) {
         return bienFoncierRepository.findById(id)
@@ -70,6 +94,7 @@ public class BienFoncierServiceImpl implements BienFoncierService {
                 .latitude(entity.getLatitude())
                 .longitude(entity.getLongitude())
                 .statut(entity.getStatut())
+                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
                 .commodites(commodites);
 
         if (entity instanceof LotProgramme lot) {

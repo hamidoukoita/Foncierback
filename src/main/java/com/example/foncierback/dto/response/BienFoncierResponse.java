@@ -25,6 +25,8 @@ public class BienFoncierResponse {
     private Double latitude;
     private Double longitude;
     private StatutParcelle statut;
+    /** Le bien accepte-t-il plusieurs réservations actives en parallèle ? */
+    private Boolean reservationMultiple;
     private String typeBien; // "LOT_PROGRAMME" ou "PARCELLE_INDIVIDUELLE"
 
     @Builder.Default

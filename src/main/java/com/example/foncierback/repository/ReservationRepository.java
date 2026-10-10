@@ -26,6 +26,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
 
     List<Reservation> findByStatut(StatutReservation statut);
 
+    boolean existsByBienFoncierIdAndStatutIn(Long bienId, java.util.Collection<StatutReservation> statuts);
+
+    boolean existsByBienFoncierIdAndStatutAndIdNot(Long bienId, StatutReservation statut, Long id);
+
     List<Reservation> findByAcquereurIdAndStatut(Long acquereurId, StatutReservation statut);
 
     /**

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,19 @@ public class BienFoncierController {
     public ResponseEntity<ApiResponse<List<BienFoncierResponse>>> getAll() {
         List<BienFoncierResponse> list = bienFoncierService.getAll();
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des biens fonciers", list));
+    }
+
+    @PatchMapping("/{id}/reservation-multiple")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Autoriser ou interdire les réservations multiples sur un bien foncier (lot ou parcelle)")
+    public ResponseEntity<ApiResponse<BienFoncierResponse>> updateReservationMultiple(
+            @PathVariable Long id,
+            @RequestParam boolean autorise
+    ) {
+        BienFoncierResponse response = bienFoncierService.updateReservationMultiple(id, autorise);
+        return ResponseEntity.ok(new ApiResponse<>(true,
+                autorise ? "Réservations multiples autorisées pour ce bien" : "Réservation unique imposée pour ce bien",
+                response));
     }
 
     @GetMapping("/statut/{statut}")

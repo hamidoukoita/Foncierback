@@ -14,5 +14,10 @@ public interface BienFoncierService {
 
     List<BienFoncierResponse> getByStatut(StatutParcelle statut);
 
+    /**
+     * Autorise (true) ou interdit (false) plusieurs réservations actives simultanées sur le bien.
+     */
+    BienFoncierResponse updateReservationMultiple(Long id, boolean autorise);
+
     BienFoncier findEntityById(Long id);
 }

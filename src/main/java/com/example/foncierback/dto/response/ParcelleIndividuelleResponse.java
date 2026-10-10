@@ -29,6 +29,8 @@ public class ParcelleIndividuelleResponse {
     /** Géométrie vectorielle JSON de la parcelle. */
     private String geometryJson;
     private StatutParcelle statut;
+    /** Le bien accepte-t-il plusieurs réservations actives en parallèle ? */
+    private Boolean reservationMultiple;
     private Boolean murCloture;
     private Boolean eauSomapep;
     private Boolean electriciteEdm;
