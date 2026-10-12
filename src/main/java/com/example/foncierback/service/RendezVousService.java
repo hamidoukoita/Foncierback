@@ -25,6 +25,9 @@ public interface RendezVousService {
 
     RendezVousResponse refuser(Long id, String motifRefus);
 
+    /** Attribue un agent et passe le RDV en ACCEPTER. */
+    RendezVousResponse assignerAgent(Long id, Long agentId);
+
     List<RendezVousResponse> findByAcquereur(Long acquereurId);
 
     List<RendezVousResponse> findByAgent(Long agentId);

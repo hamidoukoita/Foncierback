@@ -19,6 +19,7 @@ public class ReservationResponse {
     private LocalDateTime dateReservation;
     private StatutReservation statut;
     private String motifRefus;
+    private String motifAnnulation;
     private LocalDateTime dateTraitement;
     private Long bienId;
     private Long acquereurId;

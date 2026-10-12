@@ -61,6 +61,17 @@ public class RendezVousController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Rendez-vous supprimé avec succès", null));
     }
 
+
+    @PatchMapping("/{id}/agent/{agentId}")
+    @Operation(summary = "Attribuer un agent à un rendez-vous (passe le statut à ACCEPTER)")
+    public ResponseEntity<ApiResponse<RendezVousResponse>> assignerAgent(
+            @PathVariable Long id,
+            @PathVariable Long agentId
+    ) {
+        RendezVousResponse response = rendezVousService.assignerAgent(id, agentId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Agent attribué et rendez-vous confirmé", response));
+    }
+
     @PatchMapping("/{id}/accepter")
     @Operation(summary = "Accepter un rendez-vous")
     public ResponseEntity<ApiResponse<RendezVousResponse>> accepter(@PathVariable Long id) {

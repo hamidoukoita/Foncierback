@@ -25,6 +25,8 @@ public interface ReservationService {
 
     ReservationResponse refuser(Long id, String motifRefus);
 
+    ReservationResponse assignerAgent(Long reservationId, Long agentId);
+
     List<ReservationResponse> findByAcquereur(Long acquereurId);
 
     List<ReservationResponse> findByBien(Long bienId);

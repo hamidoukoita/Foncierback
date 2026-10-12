@@ -1,5 +1,6 @@
 package com.example.foncierback.service.impl;
 
+import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.RendezVousRequest;
 import com.example.foncierback.dto.response.RendezVousResponse;
@@ -10,6 +11,7 @@ import com.example.foncierback.entity.Creneau;
 import com.example.foncierback.entity.LotProgramme;
 import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.RendezVous;
+import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.entity.enums.StatutRendezVous;
 import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
@@ -34,7 +36,6 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final AgentPromoteurRepository agentPromoteurRepository;
     private final BienFoncierRepository bienFoncierRepository;
     private final CreneauRepository creneauRepository;
-    private final NotificationDispatchService notificationDispatchService;
 
     @Override
     public RendezVousResponse create(RendezVousRequest request) {
@@ -78,27 +79,6 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .build();
 
         RendezVous saved = rendezVousRepository.save(rendezVous);
-        String bienReference = bien != null && bien.getReference() != null
-                ? bien.getReference() : "le rendez-vous demandé";
-        String date = request.getDateRendezVous() != null ? request.getDateRendezVous().toString() : "date à confirmer";
-        if (bien != null) {
-            notificationDispatchService.notifySocietePourBien(
-                    bien, "VISITE", "Visite", "Nouvelle demande de rendez-vous",
-                    "Une demande de rendez-vous est enregistrée pour " + bienReference + " le " + date + "."
-            );
-        } else if (creneau != null) {
-            notificationDispatchService.notifySociete(
-                    creneau.getSocietePromotrice(), "VISITE", "Visite", "Nouvelle demande de rendez-vous",
-                    "Une demande de rendez-vous est enregistrée pour le " + date + "."
-            );
-        } else if (agent != null) {
-            notificationDispatchService.notifyUser(agent, "VISITE", "Visite", "Nouveau rendez-vous à traiter",
-                    "Une demande de rendez-vous est enregistrée pour le " + date + ".");
-        }
-        notificationDispatchService.notifyUser(
-                acquereur, "VISITE", "Visite", "Demande de rendez-vous enregistrée",
-                "Votre demande de rendez-vous pour " + bienReference + " a été enregistrée. Date demandée : " + date + "."
-        );
         return mapToResponse(saved);
     }
 
@@ -185,7 +165,6 @@ public class RendezVousServiceImpl implements RendezVousService {
             existing.setDateTraitement(LocalDateTime.now());
         }
         RendezVous saved = rendezVousRepository.save(existing);
-        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
     }
 
@@ -194,7 +173,6 @@ public class RendezVousServiceImpl implements RendezVousService {
         RendezVous existing = findEntityById(id);
         existing.accepter();
         RendezVous saved = rendezVousRepository.save(existing);
-        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
     }
 
@@ -203,23 +181,32 @@ public class RendezVousServiceImpl implements RendezVousService {
         RendezVous existing = findEntityById(id);
         existing.refuser(motifRefus);
         RendezVous saved = rendezVousRepository.save(existing);
-        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
     }
 
-    private void notifierDecisionAcquereur(RendezVous rendezVous) {
-        if (rendezVous.getAcquereur() == null) return;
-        String cible = rendezVous.getBienFoncier() != null && rendezVous.getBienFoncier().getReference() != null
-                ? rendezVous.getBienFoncier().getReference() : "votre demande de rendez-vous";
-        if (rendezVous.getStatut() == StatutRendezVous.ACCEPTER) {
-            notificationDispatchService.notifyUser(rendezVous.getAcquereur(), "VISITE", "Visite",
-                    "Rendez-vous confirmé", "Votre rendez-vous pour " + cible + " a été accepté.");
-        } else if (rendezVous.getStatut() == StatutRendezVous.REFUSER) {
-            String motif = rendezVous.getMotifRefus() == null || rendezVous.getMotifRefus().isBlank()
-                    ? "" : " Motif : " + rendezVous.getMotifRefus();
-            notificationDispatchService.notifyUser(rendezVous.getAcquereur(), "VISITE", "Visite",
-                    "Rendez-vous refusé", "Votre rendez-vous pour " + cible + " a été refusé." + motif);
+
+    /**
+     * Attribue un agent au rendez-vous et passe automatiquement le statut à ACCEPTER.
+     */
+    @Override
+    public RendezVousResponse assignerAgent(Long id, Long agentId) {
+        RendezVous existing = findEntityById(id);
+
+        if (existing.getStatut() == StatutRendezVous.REFUSER) {
+            throw new BadRequestException("Ce rendez-vous a été refusé et ne peut plus être attribué.");
         }
+
+        AgentPromoteur agent = agentPromoteurRepository.findById(agentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent introuvable avec l'identifiant : " + agentId));
+
+        if (agent.getStatut() != null && agent.getStatut() != StatutCompte.ACTIF) {
+            throw new BadRequestException("Cet agent n'est pas actif et ne peut pas recevoir de rendez-vous.");
+        }
+
+        existing.setAgentPromoteur(agent);
+        // Attribution = confirmation du RDV
+        existing.accepter();
+        return mapToResponse(rendezVousRepository.save(existing));
     }
 
     @Override

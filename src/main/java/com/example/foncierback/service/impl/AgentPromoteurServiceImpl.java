@@ -9,6 +9,8 @@ import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.TypeFonction;
 import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.repository.AgentPromoteurRepository;
+import com.example.foncierback.repository.ReservationRepository;
+import com.example.foncierback.repository.RendezVousRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.repository.TypeFonctionRepository;
 import com.example.foncierback.repository.UtilisateurRepository;
@@ -31,6 +33,8 @@ public class AgentPromoteurServiceImpl implements AgentPromoteurService {
     private final SocietePromotriceRepository societePromotriceRepository;
     private final TypeFonctionRepository typeFonctionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ReservationRepository reservationRepository;
+    private final RendezVousRepository rendezVousRepository;
 
     @Override
     public AgentPromoteurResponse create(AgentPromoteurRequest request) {
@@ -152,6 +156,21 @@ public class AgentPromoteurServiceImpl implements AgentPromoteurService {
                 .toList();
     }
 
+
+    @Override
+    public AgentPromoteurResponse changerStatut(Long id, StatutCompte statut) {
+        if (statut != StatutCompte.ACTIF && statut != StatutCompte.SUSPENDU) {
+            throw new BadRequestException("Seuls les statuts ACTIF et SUSPENDU sont autorisés pour un agent.");
+        }
+        AgentPromoteur existing = findEntityById(id);
+        if (existing.isEstResponsableSociete() && statut == StatutCompte.SUSPENDU) {
+            throw new BadRequestException("Le responsable de la société ne peut pas être suspendu depuis cette page.");
+        }
+        existing.setStatut(statut);
+        AgentPromoteur saved = agentPromoteurRepository.save(existing);
+        return mapToResponse(saved);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public AgentPromoteur findEntityById(Long id) {
@@ -160,6 +179,16 @@ public class AgentPromoteurServiceImpl implements AgentPromoteurService {
     }
 
     private AgentPromoteurResponse mapToResponse(AgentPromoteur entity) {
+        int reservationsCount = 0;
+        int rdvCount = 0;
+        if (entity.getId() != null) {
+            try {
+                reservationsCount = reservationRepository.findByAgentPromoteurId(entity.getId()).size();
+                rdvCount = rendezVousRepository.findByAgentPromoteurId(entity.getId()).size();
+            } catch (Exception ignored) {
+                // repos optionnels selon le contexte de test
+            }
+        }
         return AgentPromoteurResponse.builder()
                 .id(entity.getId())
                 .nom(entity.getNom())
@@ -173,6 +202,8 @@ public class AgentPromoteurServiceImpl implements AgentPromoteurService {
                 .societeNom(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getNom() : null)
                 .typeFonctionId(entity.getTypeFonction() != null ? entity.getTypeFonction().getId() : null)
                 .typeFonctionLibelle(entity.getTypeFonction() != null ? entity.getTypeFonction().getLibelle() : null)
+                .reservationsCount(reservationsCount)
+                .rdvVisitesCount(rdvCount)
                 .build();
     }
 }

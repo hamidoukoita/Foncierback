@@ -21,4 +21,6 @@ public interface AgentPromoteurService {
     List<AgentPromoteurResponse> getBySocieteId(Long societeId);
 
     AgentPromoteur findEntityById(Long id);
+
+    AgentPromoteurResponse changerStatut(Long id, com.example.foncierback.entity.enums.StatutCompte statut);
 }

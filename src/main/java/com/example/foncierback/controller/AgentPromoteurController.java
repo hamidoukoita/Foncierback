@@ -3,6 +3,7 @@ package com.example.foncierback.controller;
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.AgentPromoteurRequest;
 import com.example.foncierback.dto.response.AgentPromoteurResponse;
+import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.service.AgentPromoteurService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,6 +65,21 @@ public class AgentPromoteurController {
     ) {
         AgentPromoteurResponse response = agentPromoteurService.update(id, request);
         return ResponseEntity.ok(new ApiResponse<>(true, "Agent promoteur mis à jour avec succès", response));
+    }
+
+
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Suspendre ou réactiver un agent (ACTIF / SUSPENDU)")
+    public ResponseEntity<ApiResponse<AgentPromoteurResponse>> changerStatut(
+            @PathVariable Long id,
+            @RequestParam StatutCompte statut
+    ) {
+        AgentPromoteurResponse response = agentPromoteurService.changerStatut(id, statut);
+        String msg = statut == StatutCompte.SUSPENDU
+                ? "Agent suspendu : il ne pourra plus se connecter"
+                : "Agent réactivé : l'accès est rétabli";
+        return ResponseEntity.ok(new ApiResponse<>(true, msg, response));
     }
 
     @DeleteMapping("/{id}")
