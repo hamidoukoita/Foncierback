@@ -35,6 +35,7 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
     private final ModelMaisonRepository modelMaisonRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
     private final AgentPromoteurRepository agentPromoteurRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Override
     public ProjetConstructionResponse create(ProjetConstructionRequest request) {
@@ -48,6 +49,11 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
         Acquereur acquereur = resolveAcquereur(request.getAcquereurId());
         ModelMaison modelMaison = resolveModel(request.getModelMaisonId());
         SocietePromotrice societe = resolveSociete(request.getSocieteId());
+        // Si la demande choisit un modèle appartenant à une société sans transmettre societeId,
+        // on déduit la société depuis le modèle pour conserver le rattachement et notifier le promoteur.
+        if (societe == null && modelMaison != null) {
+            societe = modelMaison.getSocietePromotrice();
+        }
         AgentPromoteur agent = resolveAgent(request.getAgentId());
 
         Integer progression = request.getProgression() != null ? request.getProgression() : 0;
@@ -74,7 +80,17 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 .agentPromoteur(agent)
                 .build();
 
-        return mapToResponse(projetConstructionRepository.save(projet));
+        ProjetConstruction saved = projetConstructionRepository.save(projet);
+        String dossier = saved.getNumeroDossier();
+        if (societe != null) {
+            notificationDispatchService.notifySociete(societe, "CONSTRUCTION", "Construction",
+                    "Nouvelle demande de construction",
+                    "Une nouvelle demande de construction " + dossier + " nécessite un traitement.");
+        }
+        notificationDispatchService.notifyUser(acquereur, "CONSTRUCTION", "Construction",
+                "Demande de construction enregistrée",
+                "Votre demande de construction " + dossier + " a été enregistrée. Étape actuelle : " + saved.getEtapeAvancement() + ".");
+        return mapToResponse(saved);
     }
 
     @Override
@@ -129,14 +145,21 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
     public ProjetConstructionResponse valider(Long id) {
         ProjetConstruction existing = findEntityById(id);
         existing.validerProjet();
-        return mapToResponse(projetConstructionRepository.save(existing));
+        ProjetConstruction saved = projetConstructionRepository.save(existing);
+        notifierAcquereurProjet(saved, "Projet de construction accepté",
+                "Votre projet " + saved.getNumeroDossier() + " a été accepté et peut poursuivre son avancement.");
+        return mapToResponse(saved);
     }
 
     @Override
     public ProjetConstructionResponse refuser(Long id, String motifRefus) {
         ProjetConstruction existing = findEntityById(id);
         existing.refuserProjet(motifRefus);
-        return mapToResponse(projetConstructionRepository.save(existing));
+        ProjetConstruction saved = projetConstructionRepository.save(existing);
+        String motif = motifRefus == null || motifRefus.isBlank() ? "" : " Motif : " + motifRefus;
+        notifierAcquereurProjet(saved, "Projet de construction refusé",
+                "Votre projet " + saved.getNumeroDossier() + " a été refusé." + motif);
+        return mapToResponse(saved);
     }
 
     @Override
@@ -166,7 +189,14 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
         if (request.getProgression() == 100 && existing.getStatut() == StatutProjet.ACCEPTER) {
             existing.setEtapeAvancement("Travaux terminés");
         }
-        return mapToResponse(projetConstructionRepository.save(existing));
+        ProjetConstruction saved = projetConstructionRepository.save(existing);
+        notifierAcquereurProjet(saved, "Avancement du projet mis à jour",
+                "Votre projet " + saved.getNumeroDossier() + " est maintenant à " + saved.getProgression() + " %. Étape : " + saved.getEtapeAvancement() + ".");
+        return mapToResponse(saved);
+    }
+
+    private void notifierAcquereurProjet(ProjetConstruction projet, String titre, String message) {
+        notificationDispatchService.notifyUser(projet.getAcquereur(), "CONSTRUCTION", "Construction", titre, message);
     }
 
     @Override
