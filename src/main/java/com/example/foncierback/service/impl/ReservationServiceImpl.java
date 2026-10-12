@@ -196,6 +196,15 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ReservationResponse> findByAgent(Long agentId) {
+        return reservationRepository.findByAgentPromoteurId(agentId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ReservationResponse> findBySociete(Long societeId) {
         return reservationRepository.findBySocieteId(societeId)
                 .stream()
