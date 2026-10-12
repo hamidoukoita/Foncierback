@@ -1,5 +1,6 @@
 package com.example.foncierback.service.impl;
 
+import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.RendezVousRequest;
 import com.example.foncierback.dto.response.RendezVousResponse;
@@ -10,6 +11,7 @@ import com.example.foncierback.entity.Creneau;
 import com.example.foncierback.entity.LotProgramme;
 import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.RendezVous;
+import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.entity.enums.StatutRendezVous;
 import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
@@ -180,6 +182,31 @@ public class RendezVousServiceImpl implements RendezVousService {
         existing.refuser(motifRefus);
         RendezVous saved = rendezVousRepository.save(existing);
         return mapToResponse(saved);
+    }
+
+
+    /**
+     * Attribue un agent au rendez-vous et passe automatiquement le statut à ACCEPTER.
+     */
+    @Override
+    public RendezVousResponse assignerAgent(Long id, Long agentId) {
+        RendezVous existing = findEntityById(id);
+
+        if (existing.getStatut() == StatutRendezVous.REFUSER) {
+            throw new BadRequestException("Ce rendez-vous a été refusé et ne peut plus être attribué.");
+        }
+
+        AgentPromoteur agent = agentPromoteurRepository.findById(agentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent introuvable avec l'identifiant : " + agentId));
+
+        if (agent.getStatut() != null && agent.getStatut() != StatutCompte.ACTIF) {
+            throw new BadRequestException("Cet agent n'est pas actif et ne peut pas recevoir de rendez-vous.");
+        }
+
+        existing.setAgentPromoteur(agent);
+        // Attribution = confirmation du RDV
+        existing.accepter();
+        return mapToResponse(rendezVousRepository.save(existing));
     }
 
     @Override

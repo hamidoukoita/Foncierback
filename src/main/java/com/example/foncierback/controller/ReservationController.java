@@ -99,6 +99,17 @@ public class ReservationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Réservation supprimée avec succès", null));
     }
 
+    @PatchMapping("/{id}/agent/{agentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Attribuer une demande de réservation à un agent actif de la société")
+    public ResponseEntity<ApiResponse<ReservationResponse>> assignerAgent(
+            @PathVariable Long id,
+            @PathVariable Long agentId
+    ) {
+        ReservationResponse response = reservationService.assignerAgent(id, agentId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Agent attribué à la réservation", response));
+    }
+
     @PatchMapping("/{id}/confirmer")
     @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Confirmer une réservation")

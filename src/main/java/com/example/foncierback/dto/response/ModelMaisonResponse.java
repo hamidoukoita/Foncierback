@@ -15,4 +15,13 @@ public class ModelMaisonResponse {
     private String libeller;
     private String description;
     private String imageUrl;
+    private String planUrl;
+    private Double surfaceTerrainMin;
+    private Double surfaceTerrainMax;
+    private Double surfaceConstruite;
+    private Integer nombreChambres;
+    private Integer nombreSallesBain;
+    private String typeTerrainCompatible;
+    private Long societeId;
+    private String societeNom;
 }

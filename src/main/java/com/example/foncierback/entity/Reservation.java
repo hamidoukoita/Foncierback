@@ -43,6 +43,9 @@ public class Reservation {
     @Column(name = "motif_refus", columnDefinition = "TEXT")
     private String motifRefus;
 
+    @Column(name = "motif_annulation", columnDefinition = "TEXT")
+    private String motifAnnulation;
+
     @Column(name = "date_traitement")
     private LocalDateTime dateTraitement;
 
@@ -88,11 +91,20 @@ public class Reservation {
         this.statut = StatutReservation.CONFIRMER;
         this.dateTraitement = LocalDateTime.now();
         this.motifRefus = null;
+        this.motifAnnulation = null;
     }
 
     public void refuser(String motif) {
         this.statut = StatutReservation.REFUSER;
         this.dateTraitement = LocalDateTime.now();
         this.motifRefus = motif;
+        this.motifAnnulation = null;
+    }
+
+    public void annulerAutomatiquement(String motif) {
+        this.statut = StatutReservation.ANNULEE;
+        this.dateTraitement = LocalDateTime.now();
+        this.motifAnnulation = motif;
+        this.motifRefus = null;
     }
 }

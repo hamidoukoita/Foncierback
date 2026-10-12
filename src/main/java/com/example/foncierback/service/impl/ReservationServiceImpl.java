@@ -11,6 +11,9 @@ import com.example.foncierback.entity.Reservation;
 import com.example.foncierback.entity.LotProgramme;
 import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.enums.StatutReservation;
+import com.example.foncierback.entity.enums.StatutCompte;
+import com.example.foncierback.config.security.SecurityUtils;
+import org.hibernate.Hibernate;
 import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
 import com.example.foncierback.repository.BienFoncierRepository;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -46,29 +50,30 @@ public class ReservationServiceImpl implements ReservationService {
         BienFoncier bien = bienFoncierRepository.findById(request.getBienId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + request.getBienId()));
 
+        // Règle d'autorisation : un bien non « réservable plusieurs fois » n'accepte qu'une réservation active.
+        if (!Boolean.TRUE.equals(bien.getReservationMultiple())
+                && reservationRepository.existsByBienFoncierIdAndStatutIn(
+                        bien.getId(), List.of(StatutReservation.EN_ATTENTE, StatutReservation.CONFIRMER))) {
+            throw new BadRequestException("Ce bien a déjà une réservation active et n'autorise pas les réservations multiples");
+        }
+
         Acquereur acquereur = null;
         if (request.getAcquereurId() != null) {
             acquereur = acquereurRepository.findById(request.getAcquereurId())
                     .orElseThrow(() -> new ResourceNotFoundException("Acquéreur introuvable avec l'identifiant : " + request.getAcquereurId()));
         }
 
-        AgentPromoteur agent = null;
-        if (request.getAgentId() != null) {
-            agent = agentPromoteurRepository.findById(request.getAgentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Agent introuvable avec l'identifiant : " + request.getAgentId()));
-        }
-
-        LocalDateTime dateRes = request.getDateReservation() != null ? request.getDateReservation() : LocalDateTime.now();
-        StatutReservation statut = request.getStatut() != null ? request.getStatut() : StatutReservation.EN_ATTENTE;
-
+        // Une demande créée par l'acquéreur démarre toujours en attente et sans agent.
+        // L'horodatage est généré côté serveur pour empêcher de contourner le délai de 72 h.
         Reservation reservation = Reservation.builder()
                 .numeroDossier(numeroDossier)
-                .dateReservation(dateRes)
-                .statut(statut)
-                .motifRefus(request.getMotifRefus())
+                .dateReservation(LocalDateTime.now())
+                .statut(StatutReservation.EN_ATTENTE)
+                .motifRefus(null)
+                .motifAnnulation(null)
                 .bienFoncier(bien)
                 .acquereur(acquereur)
-                .agentPromoteur(agent)
+                .agentPromoteur(null)
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
@@ -91,8 +96,23 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ReservationResponse update(Long id, ReservationRequest request) {
         Reservation existing = findEntityById(id);
+        expirerSiNecessairePuisRefuserAction(existing);
+
+        if (request.getDateReservation() != null
+                && !request.getDateReservation().equals(existing.getDateReservation())) {
+            throw new BadRequestException("La date de création d'une réservation est immuable.");
+        }
+        if (request.getStatut() != null && request.getStatut() != existing.getStatut()) {
+            throw new BadRequestException("Utilisez l'action dédiée pour changer le statut d'une réservation.");
+        }
+        if (request.getAgentId() != null
+                && (existing.getAgentPromoteur() == null
+                || !Objects.equals(existing.getAgentPromoteur().getId(), request.getAgentId()))) {
+            throw new BadRequestException("Utilisez l'action dédiée d'attribution pour affecter un agent.");
+        }
 
         if (request.getNumeroDossier() != null && !request.getNumeroDossier().isBlank()
                 && !existing.getNumeroDossier().equalsIgnoreCase(request.getNumeroDossier())) {
@@ -116,22 +136,7 @@ public class ReservationServiceImpl implements ReservationService {
             existing.setAcquereur(null);
         }
 
-        if (request.getAgentId() != null) {
-            AgentPromoteur agent = agentPromoteurRepository.findById(request.getAgentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Agent introuvable avec l'identifiant : " + request.getAgentId()));
-            existing.setAgentPromoteur(agent);
-        } else {
-            existing.setAgentPromoteur(null);
-        }
-
-        if (request.getDateReservation() != null) {
-            existing.setDateReservation(request.getDateReservation());
-        }
-
-        if (request.getStatut() != null) {
-            existing.setStatut(request.getStatut());
-        }
-
+        // L'agent, le statut et la date de demande sont gérés par leurs actions métier dédiées.
         existing.setMotifRefus(request.getMotifRefus());
 
         Reservation updated = reservationRepository.save(existing);
@@ -145,9 +150,14 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ReservationResponse changerStatut(Long id, StatutReservation statut, String motifRefus) {
         Reservation existing = findEntityById(id);
+        expirerSiNecessairePuisRefuserAction(existing);
+        verifierDemandeEnAttente(existing);
         if (statut == StatutReservation.CONFIRMER) {
+            verifierAgentAffecte(existing);
+            verifierUniciteConfirmation(existing);
             existing.confirmer();
         } else if (statut == StatutReservation.REFUSER) {
             existing.refuser(motifRefus);
@@ -161,19 +171,132 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ReservationResponse confirmer(Long id) {
         Reservation existing = findEntityById(id);
+        expirerSiNecessairePuisRefuserAction(existing);
+        verifierDemandeEnAttente(existing);
+        verifierAgentAffecte(existing);
+        verifierUniciteConfirmation(existing);
         existing.confirmer();
         Reservation saved = reservationRepository.save(existing);
         return mapToResponse(saved);
     }
 
     @Override
+    @Transactional(noRollbackFor = BadRequestException.class)
     public ReservationResponse refuser(Long id, String motifRefus) {
         Reservation existing = findEntityById(id);
+        expirerSiNecessairePuisRefuserAction(existing);
+        verifierDemandeEnAttente(existing);
         existing.refuser(motifRefus);
         Reservation saved = reservationRepository.save(existing);
         return mapToResponse(saved);
+    }
+
+    /**
+     * Affecte réellement un agent au dossier. La demande doit encore être en attente,
+     * dans son délai d'affectation, et l'agent doit appartenir à la société qui gère le bien.
+     */
+    @Override
+    @Transactional(noRollbackFor = BadRequestException.class)
+    public ReservationResponse assignerAgent(Long reservationId, Long agentId) {
+        Reservation reservation = findEntityById(reservationId);
+        expirerSiNecessairePuisRefuserAction(reservation);
+
+        if (reservation.getStatut() == StatutReservation.ANNULEE) {
+            throw new BadRequestException("Cette demande est déjà annulée et ne peut plus être attribuée.");
+        }
+        if (reservation.getStatut() != StatutReservation.EN_ATTENTE) {
+            throw new BadRequestException("Seules les demandes en attente peuvent être attribuées à un agent.");
+        }
+
+        AgentPromoteur agent = agentPromoteurRepository.findById(agentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent introuvable avec l'identifiant : " + agentId));
+
+        if (agent.getStatut() != StatutCompte.ACTIF) {
+            throw new BadRequestException("Cet agent n'est pas actif et ne peut pas recevoir de réservation.");
+        }
+
+        Long societeBienId = trouverSocieteId(reservation.getBienFoncier());
+        Long societeAgentId = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getId() : null;
+        // Si la société du bien n'est pas résolue (données incomplètes), on se base sur la société de l'utilisateur connecté.
+        Long societeReferenceId = societeBienId != null ? societeBienId : SecurityUtils.getCurrentSocieteId();
+
+        if (societeAgentId == null || (societeReferenceId != null && !Objects.equals(societeReferenceId, societeAgentId))) {
+            throw new BadRequestException("L'agent sélectionné n'appartient pas à la société qui gère ce bien.");
+        }
+
+        if (!SecurityUtils.isAdmin()
+                && societeReferenceId != null
+                && !Objects.equals(SecurityUtils.getCurrentSocieteId(), societeReferenceId)) {
+            throw new BadRequestException("Vous ne pouvez attribuer que les réservations de votre société.");
+        }
+
+        reservation.setAgentPromoteur(agent);
+        reservation.setMotifAnnulation(null);
+        return mapToResponse(reservationRepository.save(reservation));
+    }
+
+    private Long trouverSocieteId(BienFoncier bien) {
+        if (bien == null) {
+            return null;
+        }
+        // JOINED inheritance : le proxy Hibernate empêche souvent instanceof de fonctionner.
+        Object unproxied = Hibernate.unproxy(bien);
+        if (unproxied instanceof LotProgramme lot) {
+            if (lot.getProgrammeFoncier() != null
+                    && lot.getProgrammeFoncier().getSocietePromotrice() != null) {
+                return lot.getProgrammeFoncier().getSocietePromotrice().getId();
+            }
+        } else if (unproxied instanceof ParcelleIndividuelle parcelle) {
+            if (parcelle.getSocietePromotrice() != null) {
+                return parcelle.getSocietePromotrice().getId();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Annule et persiste une demande qui a dépassé 72 h sans agent. La transaction
+     * des opérations appelantes utilise noRollbackFor afin que l'annulation soit conservée
+     * même si l'action tardive est ensuite refusée.
+     */
+    private void expirerSiNecessairePuisRefuserAction(Reservation reservation) {
+        if (reservation.getStatut() == StatutReservation.EN_ATTENTE
+                && reservation.getAgentPromoteur() == null
+                && reservation.getDateReservation() != null
+                && !reservation.getDateReservation().plusHours(72).isAfter(LocalDateTime.now())) {
+            reservation.annulerAutomatiquement(
+                    "Annulation automatique : aucun agent n'a été affecté dans les 72 heures suivant la demande.");
+            reservationRepository.save(reservation);
+            throw new BadRequestException("Cette demande a dépassé 72 heures sans agent affecté. Son statut est maintenant annulé.");
+        }
+    }
+
+    private void verifierDemandeEnAttente(Reservation reservation) {
+        if (reservation.getStatut() == StatutReservation.ANNULEE) {
+            throw new BadRequestException("Cette demande est annulée et ne peut plus être traitée.");
+        }
+        if (reservation.getStatut() != StatutReservation.EN_ATTENTE) {
+            throw new BadRequestException("Seules les demandes en attente peuvent être traitées.");
+        }
+    }
+
+    private void verifierAgentAffecte(Reservation reservation) {
+        if (reservation.getAgentPromoteur() == null) {
+            throw new BadRequestException("Attribuez d'abord un agent à cette demande avant de la confirmer.");
+        }
+    }
+
+    /** Un bien en réservation unique ne peut pas avoir deux réservations confirmées. */
+    private void verifierUniciteConfirmation(Reservation reservation) {
+        BienFoncier bien = reservation.getBienFoncier();
+        if (bien != null && !Boolean.TRUE.equals(bien.getReservationMultiple())
+                && reservationRepository.existsByBienFoncierIdAndStatutAndIdNot(
+                        bien.getId(), StatutReservation.CONFIRMER, reservation.getId())) {
+            throw new BadRequestException("Ce bien a déjà une réservation confirmée et n'autorise pas les réservations multiples");
+        }
     }
 
     @Override
@@ -252,6 +375,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .dateExpiration(entity.getDateExpiration())
                 .statut(entity.getStatut())
                 .motifRefus(entity.getMotifRefus())
+                .motifAnnulation(entity.getMotifAnnulation())
                 .dateTraitement(entity.getDateTraitement())
                 .bienId(bien != null ? bien.getId() : null)
                 .acquereurId(entity.getAcquereur() != null ? entity.getAcquereur().getId() : null)

@@ -185,6 +185,7 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
                 .longitude(entity.getLongitude())
                 .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
+                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
                 .numeroLot(entity.getNumeroLot())
                 .numeroIlot(entity.getNumeroIlot())
                 .numeroIlotLotissement(entity.getNumeroIlotLotissement())
