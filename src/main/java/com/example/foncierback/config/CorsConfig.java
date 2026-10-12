@@ -15,10 +15,9 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Angular (4200), outils dev, Flutter Web (port aléatoire type 57801)
         configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*"
+                "*" // Autorise toutes les origines pour le développement Flutter Web
+
         ));
 
         configuration.setAllowedMethods(List.of(

@@ -4,5 +4,6 @@ public enum StatutParcelle {
     DISPONIBLE,
     RESERVER,
     VENDUE,
-    INDISPONIBLE
+    INDISPONIBLE,
+    EN_LITIGE
 }

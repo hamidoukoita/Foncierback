@@ -17,6 +17,7 @@ public class ReservationResponse {
     private Long id;
     private String numeroDossier;
     private LocalDateTime dateReservation;
+    private LocalDateTime dateExpiration;
     private StatutReservation statut;
     private String motifRefus;
     private String motifAnnulation;
