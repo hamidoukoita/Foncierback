@@ -26,6 +26,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
 
     List<Reservation> findByStatut(StatutReservation statut);
 
+    /** Demandes en attente depuis au moins le délai autorisé et sans agent affecté. */
+    List<Reservation> findByStatutAndAgentPromoteurIsNullAndDateReservationLessThanEqual(
+            StatutReservation statut, java.time.LocalDateTime dateLimite);
+
     boolean existsByBienFoncierIdAndStatutIn(Long bienId, java.util.Collection<StatutReservation> statuts);
 
     boolean existsByBienFoncierIdAndStatutAndIdNot(Long bienId, StatutReservation statut, Long id);

@@ -27,4 +27,6 @@ public class AgentPromoteurResponse {
     private String societeNom;
     private Long typeFonctionId;
     private String typeFonctionLibelle;
+    private Integer reservationsCount;
+    private Integer rdvVisitesCount;
 }
