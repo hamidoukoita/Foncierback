@@ -33,6 +33,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final BienFoncierRepository bienFoncierRepository;
     private final AcquereurRepository acquereurRepository;
     private final AgentPromoteurRepository agentPromoteurRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
@@ -79,6 +80,15 @@ public class ReservationServiceImpl implements ReservationService {
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
+        String bienReference = bien.getReference() != null ? bien.getReference() : "bien foncier #" + bien.getId();
+        notificationDispatchService.notifySocietePourBien(
+                bien, "RESERVATION", "Réservation", "Nouvelle demande de réservation",
+                "Une demande de réservation " + saved.getNumeroDossier() + " concerne le bien " + bienReference + "."
+        );
+        notificationDispatchService.notifyUser(
+                acquereur, "RESERVATION", "Réservation", "Demande de réservation enregistrée",
+                "Votre demande " + saved.getNumeroDossier() + " pour le bien " + bienReference + " a été enregistrée."
+        );
         return mapToResponse(saved);
     }
 
@@ -165,6 +175,7 @@ public class ReservationServiceImpl implements ReservationService {
             existing.setDateTraitement(LocalDateTime.now());
         }
         Reservation saved = reservationRepository.save(existing);
+        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
     }
 
@@ -174,6 +185,7 @@ public class ReservationServiceImpl implements ReservationService {
         verifierUniciteConfirmation(existing);
         existing.confirmer();
         Reservation saved = reservationRepository.save(existing);
+        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
     }
 
@@ -182,7 +194,31 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation existing = findEntityById(id);
         existing.refuser(motifRefus);
         Reservation saved = reservationRepository.save(existing);
+        notifierDecisionAcquereur(saved);
         return mapToResponse(saved);
+    }
+
+    private void notifierDecisionAcquereur(Reservation reservation) {
+        if (reservation.getAcquereur() == null) return;
+        String bienReference = reservation.getBienFoncier() != null && reservation.getBienFoncier().getReference() != null
+                ? reservation.getBienFoncier().getReference()
+                : "votre bien foncier";
+        if (reservation.getStatut() == StatutReservation.CONFIRMER) {
+            notificationDispatchService.notifyUser(
+                    reservation.getAcquereur(), "RESERVATION", "Réservation",
+                    "Réservation confirmée",
+                    "Votre réservation " + reservation.getNumeroDossier() + " pour " + bienReference + " a été confirmée."
+            );
+        } else if (reservation.getStatut() == StatutReservation.REFUSER) {
+            String motif = reservation.getMotifRefus() == null || reservation.getMotifRefus().isBlank()
+                    ? "Aucun motif complémentaire n’a été fourni."
+                    : "Motif : " + reservation.getMotifRefus();
+            notificationDispatchService.notifyUser(
+                    reservation.getAcquereur(), "RESERVATION", "Réservation",
+                    "Réservation refusée",
+                    "Votre réservation " + reservation.getNumeroDossier() + " pour " + bienReference + " a été refusée. " + motif
+            );
+        }
     }
 
     /** Un bien en réservation unique ne peut pas avoir deux réservations confirmées. */
