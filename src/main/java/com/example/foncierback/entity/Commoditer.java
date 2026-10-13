@@ -37,10 +37,21 @@ public class Commoditer {
 
     // --- Cardinalités / Relations ---
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_commodite_id")
     @ToString.Exclude
     private TypeCommoditer typeCommodite;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "societe_id")
+    @ToString.Exclude
+    private SocietePromotrice societePromotrice;
 
     @Builder.Default
     @ManyToMany(mappedBy = "commodites")

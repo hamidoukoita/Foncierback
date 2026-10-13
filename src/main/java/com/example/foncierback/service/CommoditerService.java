@@ -16,6 +16,8 @@ public interface CommoditerService {
 
     List<CommoditerResponse> getByTypeCommoditeId(Long typeCommoditeId);
 
+    List<CommoditerResponse> getBySocieteId(Long societeId);
+
     List<CommoditerResponse> searchByNom(String keyword);
 
     CommoditerResponse update(Long id, CommoditerRequest request);

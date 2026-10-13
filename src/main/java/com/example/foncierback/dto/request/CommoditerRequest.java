@@ -24,4 +24,10 @@ public class CommoditerRequest {
     private String description;
 
     private Long typeCommoditeId;
+
+    private Long societeId;
+
+    private Double latitude;
+
+    private Double longitude;
 }

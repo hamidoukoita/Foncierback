@@ -43,6 +43,14 @@ public class CommoditerController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des commodités", list));
     }
 
+    
+    @GetMapping("/societe/{societeId}")
+    @Operation(summary = "Lister les commodités d'une société promotrice")
+    public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getBySocieteId(@PathVariable Long societeId) {
+        List<CommoditerResponse> list = commoditerService.getBySocieteId(societeId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Commodités de la société", list));
+    }
+
     @GetMapping("/type/{typeCommoditeId}")
     @Operation(summary = "Lister les commodités par type de commodité")
     public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getByTypeCommoditeId(@PathVariable Long typeCommoditeId) {

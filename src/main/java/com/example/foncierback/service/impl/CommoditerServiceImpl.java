@@ -7,6 +7,8 @@ import com.example.foncierback.dto.response.CommoditerResponse;
 import com.example.foncierback.entity.Commoditer;
 import com.example.foncierback.entity.TypeCommoditer;
 import com.example.foncierback.repository.CommoditerRepository;
+import com.example.foncierback.repository.SocietePromotriceRepository;
+import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.repository.TypeCommoditerRepository;
 import com.example.foncierback.service.CommoditerService;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +24,15 @@ public class CommoditerServiceImpl implements CommoditerService {
 
     private final CommoditerRepository commoditerRepository;
     private final TypeCommoditerRepository typeCommoditerRepository;
+    private final SocietePromotriceRepository societePromotriceRepository;
 
     @Override
     public CommoditerResponse create(CommoditerRequest request) {
-        if (commoditerRepository.existsByNom(request.getNom())) {
+        if (request.getSocieteId() != null) {
+            if (commoditerRepository.existsByNomIgnoreCaseAndSocietePromotriceId(request.getNom(), request.getSocieteId())) {
+                throw new BadRequestException("Une commodité avec le nom '" + request.getNom() + "' existe déjà pour cette société");
+            }
+        } else if (commoditerRepository.existsByNom(request.getNom())) {
             throw new BadRequestException("Une commodité avec le nom '" + request.getNom() + "' existe déjà");
         }
 
@@ -35,11 +42,20 @@ public class CommoditerServiceImpl implements CommoditerService {
                     .orElseThrow(() -> new ResourceNotFoundException("Type de commodité introuvable avec l'identifiant : " + request.getTypeCommoditeId()));
         }
 
+        SocietePromotrice societe = null;
+        if (request.getSocieteId() != null) {
+            societe = societePromotriceRepository.findById(request.getSocieteId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
+        }
+
         Commoditer commoditer = Commoditer.builder()
                 .nom(request.getNom())
                 .icone(request.getIcone())
                 .description(request.getDescription())
                 .typeCommodite(typeCommodite)
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .societePromotrice(societe)
                 .build();
 
         Commoditer saved = commoditerRepository.save(commoditer);
@@ -56,6 +72,19 @@ public class CommoditerServiceImpl implements CommoditerService {
     @Transactional(readOnly = true)
     public List<CommoditerResponse> getAll() {
         return commoditerRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommoditerResponse> getBySocieteId(Long societeId) {
+        if (!societePromotriceRepository.existsById(societeId)) {
+            throw new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + societeId);
+        }
+        return commoditerRepository.findBySocietePromotriceId(societeId)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -101,6 +130,13 @@ public class CommoditerServiceImpl implements CommoditerService {
         existing.setIcone(request.getIcone());
         existing.setDescription(request.getDescription());
         existing.setTypeCommodite(typeCommodite);
+        existing.setLatitude(request.getLatitude());
+        existing.setLongitude(request.getLongitude());
+        if (request.getSocieteId() != null) {
+            SocietePromotrice societe = societePromotriceRepository.findById(request.getSocieteId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
+            existing.setSocietePromotrice(societe);
+        }
 
         Commoditer updated = commoditerRepository.save(existing);
         return mapToResponse(updated);
@@ -127,6 +163,9 @@ public class CommoditerServiceImpl implements CommoditerService {
                 .description(entity.getDescription())
                 .typeCommoditeId(entity.getTypeCommodite() != null ? entity.getTypeCommodite().getId() : null)
                 .typeCommoditeLibelle(entity.getTypeCommodite() != null ? entity.getTypeCommodite().getLibelle() : null)
+                .societeId(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getId() : null)
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
                 .build();
     }
 }
