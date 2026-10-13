@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class TypeCommoditerController {
     private final TypeCommoditerService typeCommoditerService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Créer un nouveau type de commodité")
     public ResponseEntity<ApiResponse<TypeCommoditerResponse>> create(@Valid @RequestBody TypeCommoditerRequest request) {
         TypeCommoditerResponse response = typeCommoditerService.create(request);
@@ -44,6 +46,7 @@ public class TypeCommoditerController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Modifier un type de commodité existant")
     public ResponseEntity<ApiResponse<TypeCommoditerResponse>> update(
             @PathVariable Long id,
@@ -54,6 +57,7 @@ public class TypeCommoditerController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer un type de commodité")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         typeCommoditerService.delete(id);

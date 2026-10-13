@@ -16,6 +16,11 @@ public interface CommoditerService {
 
     List<CommoditerResponse> getByTypeCommoditeId(Long typeCommoditeId);
 
+    /** Commodités référencées par une société promotrice. */
+    List<CommoditerResponse> getBySociete(Long societeId);
+
+    CommoditerResponse toResponse(Commoditer commoditer);
+
     List<CommoditerResponse> searchByNom(String keyword);
 
     CommoditerResponse update(Long id, CommoditerRequest request);

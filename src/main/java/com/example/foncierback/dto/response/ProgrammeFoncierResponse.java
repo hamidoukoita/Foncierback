@@ -18,6 +18,8 @@ public class ProgrammeFoncierResponse {
     private String nom;
     private String description;
     private String lieu;
+    private Double latitude;
+    private Double longitude;
     private String numeroTitreMere;
     private Double superficieTotale;
     private StatutProgramme statut;

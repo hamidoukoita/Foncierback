@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class CommoditerController {
     private final CommoditerService commoditerService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Créer une nouvelle commodité")
     public ResponseEntity<ApiResponse<CommoditerResponse>> create(@Valid @RequestBody CommoditerRequest request) {
         CommoditerResponse response = commoditerService.create(request);
@@ -50,6 +52,14 @@ public class CommoditerController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des commodités pour le type " + typeCommoditeId, list));
     }
 
+    @GetMapping("/societe/{societeId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
+    @Operation(summary = "Lister les commodités référencées par une société")
+    public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getBySociete(@PathVariable Long societeId) {
+        List<CommoditerResponse> list = commoditerService.getBySociete(societeId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Commodités de la société " + societeId, list));
+    }
+
     @GetMapping("/search")
     @Operation(summary = "Rechercher des commodités par mot-clé dans le nom")
     public ResponseEntity<ApiResponse<List<CommoditerResponse>>> search(@RequestParam String keyword) {
@@ -58,6 +68,7 @@ public class CommoditerController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Modifier une commodité existante")
     public ResponseEntity<ApiResponse<CommoditerResponse>> update(
             @PathVariable Long id,
@@ -68,6 +79,7 @@ public class CommoditerController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Supprimer une commodité")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         commoditerService.delete(id);

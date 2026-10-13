@@ -49,6 +49,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
                 .nom(request.getNom())
                 .description(request.getDescription())
                 .lieu(request.getLieu())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .numeroTitreMere(request.getNumeroTitreMere())
                 .superficieTotale(request.getSuperficieTotale())
                 .statut(request.getStatut())
@@ -101,6 +103,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
         existing.setLieu(request.getLieu());
+        existing.setLatitude(request.getLatitude());
+        existing.setLongitude(request.getLongitude());
         existing.setNumeroTitreMere(request.getNumeroTitreMere());
         existing.setSuperficieTotale(request.getSuperficieTotale());
         existing.setStatut(request.getStatut());
@@ -166,6 +170,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
                 .nom(entity.getNom())
                 .description(entity.getDescription())
                 .lieu(entity.getLieu())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
                 .numeroTitreMere(entity.getNumeroTitreMere())
                 .superficieTotale(entity.getSuperficieTotale())
                 .statut(entity.getStatut())

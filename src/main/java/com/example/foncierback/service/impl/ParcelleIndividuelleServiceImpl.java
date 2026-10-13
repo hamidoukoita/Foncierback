@@ -221,6 +221,8 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .nom(c.getNom())
                 .icone(c.getIcone())
                 .description(c.getDescription())
+                .latitude(c.getLatitude())
+                .longitude(c.getLongitude())
                 .typeCommoditeId(c.getTypeCommodite() != null ? c.getTypeCommodite().getId() : null)
                 .typeCommoditeLibelle(c.getTypeCommodite() != null ? c.getTypeCommodite().getLibelle() : null)
                 .build();
