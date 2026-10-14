@@ -15,9 +15,9 @@ public class CommoditerResponse {
     private String nom;
     private String icone;
     private String description;
+    private Double latitude;
+    private Double longitude;
     private Long typeCommoditeId;
     private String typeCommoditeLibelle;
     private Long societeId;
-    private Double latitude;
-    private Double longitude;
 }

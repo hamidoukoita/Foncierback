@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class CommoditerController {
     private final CommoditerService commoditerService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Créer une nouvelle commodité")
     public ResponseEntity<ApiResponse<CommoditerResponse>> create(@Valid @RequestBody CommoditerRequest request) {
         CommoditerResponse response = commoditerService.create(request);
@@ -45,6 +47,7 @@ public class CommoditerController {
 
     
     @GetMapping("/societe/{societeId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
     @Operation(summary = "Lister les commodités d'une société promotrice")
     public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getBySocieteId(@PathVariable Long societeId) {
         List<CommoditerResponse> list = commoditerService.getBySocieteId(societeId);
@@ -66,6 +69,7 @@ public class CommoditerController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Modifier une commodité existante")
     public ResponseEntity<ApiResponse<CommoditerResponse>> update(
             @PathVariable Long id,
@@ -76,6 +80,7 @@ public class CommoditerController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Supprimer une commodité")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         commoditerService.delete(id);

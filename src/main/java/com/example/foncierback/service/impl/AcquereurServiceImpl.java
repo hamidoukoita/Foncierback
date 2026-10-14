@@ -3,6 +3,7 @@ package com.example.foncierback.service.impl;
 import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.AcquereurRequest;
+import com.example.foncierback.dto.request.IdentiteRequest;
 import com.example.foncierback.dto.response.AcquereurResponse;
 import com.example.foncierback.entity.Acquereur;
 import com.example.foncierback.entity.enums.StatutCompte;
@@ -65,6 +66,14 @@ public class AcquereurServiceImpl implements AcquereurService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    public AcquereurResponse modifierIdentite(Long id, IdentiteRequest request) {
+        Acquereur existing = findEntityById(id);
+        existing.setNom(request.getNom().trim());
+        existing.setPrenom(request.getPrenom().trim());
+        return mapToResponse(acquereurRepository.save(existing));
     }
 
     @Override

@@ -14,6 +14,10 @@ public interface CommoditerRepository extends JpaRepository<Commoditer, Long>, J
     boolean existsByNom(String nom);
     List<Commoditer> findByNomContainingIgnoreCase(String keyword);
     List<Commoditer> findByTypeCommoditeId(Long typeCommoditeId);
+
     List<Commoditer> findBySocietePromotriceId(Long societeId);
+
     boolean existsByNomIgnoreCaseAndSocietePromotriceId(String nom, Long societeId);
+
+    boolean existsByNomIgnoreCaseAndSocietePromotriceIsNull(String nom);
 }

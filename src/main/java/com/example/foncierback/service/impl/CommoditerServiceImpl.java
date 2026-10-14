@@ -4,11 +4,14 @@ import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.CommoditerRequest;
 import com.example.foncierback.dto.response.CommoditerResponse;
+import com.example.foncierback.config.security.SecurityUtils;
 import com.example.foncierback.entity.Commoditer;
+import com.example.foncierback.entity.SocietePromotrice;
+import com.example.foncierback.repository.ProximiteCommoditeRepository;
+import com.example.foncierback.repository.SocietePromotriceRepository;
+import org.springframework.security.access.AccessDeniedException;
 import com.example.foncierback.entity.TypeCommoditer;
 import com.example.foncierback.repository.CommoditerRepository;
-import com.example.foncierback.repository.SocietePromotriceRepository;
-import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.repository.TypeCommoditerRepository;
 import com.example.foncierback.service.CommoditerService;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +28,12 @@ public class CommoditerServiceImpl implements CommoditerService {
     private final CommoditerRepository commoditerRepository;
     private final TypeCommoditerRepository typeCommoditerRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
+    private final ProximiteCommoditeRepository proximiteCommoditeRepository;
 
     @Override
     public CommoditerResponse create(CommoditerRequest request) {
-        if (request.getSocieteId() != null) {
-            if (commoditerRepository.existsByNomIgnoreCaseAndSocietePromotriceId(request.getNom(), request.getSocieteId())) {
-                throw new BadRequestException("Une commodité avec le nom '" + request.getNom() + "' existe déjà pour cette société");
-            }
-        } else if (commoditerRepository.existsByNom(request.getNom())) {
-            throw new BadRequestException("Une commodité avec le nom '" + request.getNom() + "' existe déjà");
-        }
+        SocietePromotrice societe = resoudreSociete(request.getSocieteId());
+        verifierNomDisponible(request.getNom(), societe);
 
         TypeCommoditer typeCommodite = null;
         if (request.getTypeCommoditeId() != null) {
@@ -42,19 +41,13 @@ public class CommoditerServiceImpl implements CommoditerService {
                     .orElseThrow(() -> new ResourceNotFoundException("Type de commodité introuvable avec l'identifiant : " + request.getTypeCommoditeId()));
         }
 
-        SocietePromotrice societe = null;
-        if (request.getSocieteId() != null) {
-            societe = societePromotriceRepository.findById(request.getSocieteId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
-        }
-
         Commoditer commoditer = Commoditer.builder()
                 .nom(request.getNom())
                 .icone(request.getIcone())
                 .description(request.getDescription())
-                .typeCommodite(typeCommodite)
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .typeCommodite(typeCommodite)
                 .societePromotrice(societe)
                 .build();
 
@@ -76,7 +69,6 @@ public class CommoditerServiceImpl implements CommoditerService {
                 .map(this::mapToResponse)
                 .toList();
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -114,10 +106,9 @@ public class CommoditerServiceImpl implements CommoditerService {
     @Override
     public CommoditerResponse update(Long id, CommoditerRequest request) {
         Commoditer existing = findEntityById(id);
-
-        if (!existing.getNom().equalsIgnoreCase(request.getNom())
-                && commoditerRepository.existsByNom(request.getNom())) {
-            throw new BadRequestException("Une commodité avec le nom '" + request.getNom() + "' existe déjà");
+        verifierProprietaire(existing);
+        if (!existing.getNom().equalsIgnoreCase(request.getNom())) {
+            verifierNomDisponible(request.getNom(), existing.getSocietePromotrice());
         }
 
         TypeCommoditer typeCommodite = null;
@@ -129,14 +120,9 @@ public class CommoditerServiceImpl implements CommoditerService {
         existing.setNom(request.getNom());
         existing.setIcone(request.getIcone());
         existing.setDescription(request.getDescription());
-        existing.setTypeCommodite(typeCommodite);
         existing.setLatitude(request.getLatitude());
         existing.setLongitude(request.getLongitude());
-        if (request.getSocieteId() != null) {
-            SocietePromotrice societe = societePromotriceRepository.findById(request.getSocieteId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + request.getSocieteId()));
-            existing.setSocietePromotrice(societe);
-        }
+        existing.setTypeCommodite(typeCommodite);
 
         Commoditer updated = commoditerRepository.save(existing);
         return mapToResponse(updated);
@@ -145,6 +131,8 @@ public class CommoditerServiceImpl implements CommoditerService {
     @Override
     public void delete(Long id) {
         Commoditer existing = findEntityById(id);
+        verifierProprietaire(existing);
+        proximiteCommoditeRepository.deleteByCommoditeId(id);
         commoditerRepository.delete(existing);
     }
 
@@ -155,17 +143,51 @@ public class CommoditerServiceImpl implements CommoditerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Commodité introuvable avec l'identifiant : " + id));
     }
 
+    /** Un agent agit toujours pour sa propre société ; l'admin peut cibler une société ou le référentiel. */
+    private SocietePromotrice resoudreSociete(Long societeIdDemande) {
+        Long societeId = SecurityUtils.isAdmin() ? societeIdDemande : SecurityUtils.getCurrentSocieteId();
+        if (societeId == null) {
+            return null;
+        }
+        return societePromotriceRepository.findById(societeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + societeId));
+    }
+
+    private void verifierNomDisponible(String nom, SocietePromotrice societe) {
+        boolean existe = societe == null
+                ? commoditerRepository.existsByNomIgnoreCaseAndSocietePromotriceIsNull(nom)
+                : commoditerRepository.existsByNomIgnoreCaseAndSocietePromotriceId(nom, societe.getId());
+        if (existe) {
+            throw new BadRequestException("Une commodité avec le nom '" + nom + "' existe déjà");
+        }
+    }
+
+    private void verifierProprietaire(Commoditer commoditer) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+        Long societeId = commoditer.getSocietePromotrice() != null ? commoditer.getSocietePromotrice().getId() : null;
+        if (societeId == null || !societeId.equals(SecurityUtils.getCurrentSocieteId())) {
+            throw new AccessDeniedException("Cette commodité n'appartient pas à votre société");
+        }
+    }
+
+    @Override
+    public CommoditerResponse toResponse(Commoditer commoditer) {
+        return mapToResponse(commoditer);
+    }
+
     private CommoditerResponse mapToResponse(Commoditer entity) {
         return CommoditerResponse.builder()
                 .id(entity.getId())
                 .nom(entity.getNom())
                 .icone(entity.getIcone())
                 .description(entity.getDescription())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
                 .typeCommoditeId(entity.getTypeCommodite() != null ? entity.getTypeCommodite().getId() : null)
                 .typeCommoditeLibelle(entity.getTypeCommodite() != null ? entity.getTypeCommodite().getLibelle() : null)
                 .societeId(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getId() : null)
-                .latitude(entity.getLatitude())
-                .longitude(entity.getLongitude())
                 .build();
     }
 }

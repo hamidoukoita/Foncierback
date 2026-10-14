@@ -43,4 +43,13 @@ public class ProjetConstructionResponse {
     private String societeNom;
     private Long agentId;
     private String agentNom;
+    private boolean modelePersonnalise;
+    private Long maisonReferenceId;
+    private String maisonReferenceTitre;
+    private String maisonReferenceImageUrl;
+    private String descriptionModelePersonnalise;
+    private Integer nombreChambresSouhaitees;
+    private Integer nombreSallesBainSouhaitees;
+    private Double surfaceConstruiteSouhaitee;
+    private java.util.List<FichierProjetResponse> fichiers;
 }

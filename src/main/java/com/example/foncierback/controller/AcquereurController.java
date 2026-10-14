@@ -2,6 +2,7 @@ package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.AcquereurRequest;
+import com.example.foncierback.dto.request.IdentiteRequest;
 import com.example.foncierback.dto.response.AcquereurResponse;
 import com.example.foncierback.service.AcquereurService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,6 +46,7 @@ public class AcquereurController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#id)")
     @Operation(summary = "Modifier les informations d'un acquéreur")
     public ResponseEntity<ApiResponse<AcquereurResponse>> update(
             @PathVariable Long id,
@@ -53,7 +56,19 @@ public class AcquereurController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Acquéreur mis à jour avec succès", response));
     }
 
+    @PatchMapping("/{id}/identite")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#id)")
+    @Operation(summary = "Modifier le nom et le prénom de l'acquéreur")
+    public ResponseEntity<ApiResponse<AcquereurResponse>> modifierIdentite(
+            @PathVariable Long id,
+            @Valid @RequestBody IdentiteRequest request
+    ) {
+        AcquereurResponse response = acquereurService.modifierIdentite(id, request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Profil mis à jour", response));
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#id)")
     @Operation(summary = "Supprimer un acquéreur")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         acquereurService.delete(id);

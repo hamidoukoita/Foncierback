@@ -11,6 +11,7 @@ import com.example.foncierback.repository.LotProgrammeRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.service.ProgrammeFoncierService;
+import com.example.foncierback.service.CouvertureResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
     private final ProgrammeFoncierRepository programmeFoncierRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
     private final LotProgrammeRepository lotProgrammeRepository;
+    private final CouvertureResolver couvertureResolver;
 
     @Override
     public ProgrammeFoncierResponse create(ProgrammeFoncierRequest request) {
@@ -49,6 +51,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
                 .nom(request.getNom())
                 .description(request.getDescription())
                 .lieu(request.getLieu())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .numeroTitreMere(request.getNumeroTitreMere())
                 .superficieTotale(request.getSuperficieTotale())
                 .statut(request.getStatut())
@@ -101,6 +105,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
         existing.setLieu(request.getLieu());
+        existing.setLatitude(request.getLatitude());
+        existing.setLongitude(request.getLongitude());
         existing.setNumeroTitreMere(request.getNumeroTitreMere());
         existing.setSuperficieTotale(request.getSuperficieTotale());
         existing.setStatut(request.getStatut());
@@ -163,9 +169,13 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
         int totalLots = (int) lotProgrammeRepository.countByProgrammeFoncierId(entity.getId());
         return ProgrammeFoncierResponse.builder()
                 .id(entity.getId())
+                .imageUrl(couvertureResolver.pourProgramme(entity.getId()))
+                .nombrePanoramas(couvertureResolver.panoramasProgramme(entity.getId()))
                 .nom(entity.getNom())
                 .description(entity.getDescription())
                 .lieu(entity.getLieu())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
                 .numeroTitreMere(entity.getNumeroTitreMere())
                 .superficieTotale(entity.getSuperficieTotale())
                 .statut(entity.getStatut())

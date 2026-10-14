@@ -1,6 +1,7 @@
 package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
+import com.example.foncierback.dto.request.ReglesReservationRequest;
 import com.example.foncierback.dto.request.SocietePromotriceRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.enums.StatutAgrement;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,6 +51,7 @@ public class SocietePromotriceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#id))")
     @Operation(summary = "Modifier une société promotrice existante")
     public ResponseEntity<ApiResponse<SocietePromotriceResponse>> update(
             @PathVariable Long id,
@@ -58,7 +61,19 @@ public class SocietePromotriceController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Société promotrice mise à jour avec succès", response));
     }
 
+    @PatchMapping("/{id}/regles-reservation")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#id))")
+    @Operation(summary = "Fixer les règles de réservation de la société (délai d'attribution, réservation multiple)")
+    public ResponseEntity<ApiResponse<SocietePromotriceResponse>> updateReglesReservation(
+            @PathVariable Long id,
+            @Valid @RequestBody ReglesReservationRequest request
+    ) {
+        SocietePromotriceResponse response = societePromotriceService.updateReglesReservation(id, request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Règles de réservation mises à jour", response));
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer une société promotrice")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         societePromotriceService.delete(id);

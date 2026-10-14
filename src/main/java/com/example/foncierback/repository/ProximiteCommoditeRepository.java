@@ -11,10 +11,13 @@ import java.util.List;
 @Repository
 public interface ProximiteCommoditeRepository extends JpaRepository<ProximiteCommodite, Long> {
 
-    List<ProximiteCommodite> findByCommoditeId(Long commoditeId);
+    List<ProximiteCommodite> findByProgrammeFoncierId(Long programmeId);
 
+    List<ProximiteCommodite> findByBienFoncierId(Long bienId);
+
+    /** Rattachements des commodités de la société ou de ses cités (chargement groupé). */
     @Query("""
-        SELECT p FROM ProximiteCommodite p
+        SELECT DISTINCT p FROM ProximiteCommodite p
         LEFT JOIN FETCH p.commodite c
         LEFT JOIN FETCH c.typeCommodite
         LEFT JOIN FETCH c.societePromotrice
@@ -25,4 +28,10 @@ public interface ProximiteCommoditeRepository extends JpaRepository<ProximiteCom
            OR prog.societePromotrice.id = :societeId
         """)
     List<ProximiteCommodite> findBySocieteId(@Param("societeId") Long societeId);
+
+    boolean existsByCommoditeIdAndProgrammeFoncierId(Long commoditeId, Long programmeId);
+
+    boolean existsByCommoditeIdAndBienFoncierId(Long commoditeId, Long bienId);
+
+    void deleteByCommoditeId(Long commoditeId);
 }

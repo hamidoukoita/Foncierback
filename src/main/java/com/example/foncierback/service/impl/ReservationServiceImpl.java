@@ -8,16 +8,15 @@ import com.example.foncierback.entity.Acquereur;
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Reservation;
-import com.example.foncierback.entity.LotProgramme;
-import com.example.foncierback.entity.ParcelleIndividuelle;
+import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.enums.StatutReservation;
 import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.config.security.SecurityUtils;
-import org.hibernate.Hibernate;
 import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
 import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.ReservationRepository;
+import com.example.foncierback.service.ReglesReservationResolver;
 import com.example.foncierback.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +36,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final BienFoncierRepository bienFoncierRepository;
     private final AcquereurRepository acquereurRepository;
     private final AgentPromoteurRepository agentPromoteurRepository;
+    private final ReglesReservationResolver reglesResolver;
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
@@ -50,8 +50,8 @@ public class ReservationServiceImpl implements ReservationService {
         BienFoncier bien = bienFoncierRepository.findById(request.getBienId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + request.getBienId()));
 
-        // Règle d'autorisation : un bien non « réservable plusieurs fois » n'accepte qu'une réservation active.
-        if (!Boolean.TRUE.equals(bien.getReservationMultiple())
+        // Règle de la société : sans réservation multiple, un bien n'accepte qu'une réservation active.
+        if (!reglesResolver.autoriseReservationMultiple(bien)
                 && reservationRepository.existsByBienFoncierIdAndStatutIn(
                         bien.getId(), List.of(StatutReservation.EN_ATTENTE, StatutReservation.CONFIRMER))) {
             throw new BadRequestException("Ce bien a déjà une réservation active et n'autorise pas les réservations multiples");
@@ -64,10 +64,12 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         // Une demande créée par l'acquéreur démarre toujours en attente et sans agent.
-        // L'horodatage est généré côté serveur pour empêcher de contourner le délai de 72 h.
+        // L'horodatage est généré côté serveur pour empêcher de contourner le délai d'attribution.
+        LocalDateTime maintenant = LocalDateTime.now();
         Reservation reservation = Reservation.builder()
                 .numeroDossier(numeroDossier)
-                .dateReservation(LocalDateTime.now())
+                .dateReservation(maintenant)
+                .dateExpiration(maintenant.plusHours(reglesResolver.heures(reglesResolver.societe(bien))))
                 .statut(StatutReservation.EN_ATTENTE)
                 .motifRefus(null)
                 .motifAnnulation(null)
@@ -239,38 +241,21 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     private Long trouverSocieteId(BienFoncier bien) {
-        if (bien == null) {
-            return null;
-        }
-        // JOINED inheritance : le proxy Hibernate empêche souvent instanceof de fonctionner.
-        Object unproxied = Hibernate.unproxy(bien);
-        if (unproxied instanceof LotProgramme lot) {
-            if (lot.getProgrammeFoncier() != null
-                    && lot.getProgrammeFoncier().getSocietePromotrice() != null) {
-                return lot.getProgrammeFoncier().getSocietePromotrice().getId();
-            }
-        } else if (unproxied instanceof ParcelleIndividuelle parcelle) {
-            if (parcelle.getSocietePromotrice() != null) {
-                return parcelle.getSocietePromotrice().getId();
-            }
-        }
-        return null;
+        SocietePromotrice societe = reglesResolver.societe(bien);
+        return societe != null ? societe.getId() : null;
     }
 
     /**
-     * Annule et persiste une demande qui a dépassé 72 h sans agent. La transaction
-     * des opérations appelantes utilise noRollbackFor afin que l'annulation soit conservée
-     * même si l'action tardive est ensuite refusée.
+     * Annule et persiste une demande qui a dépassé le délai d'attribution de sa société sans agent.
+     * La transaction des opérations appelantes utilise noRollbackFor afin que l'annulation soit
+     * conservée même si l'action tardive est ensuite refusée.
      */
     private void expirerSiNecessairePuisRefuserAction(Reservation reservation) {
-        if (reservation.getStatut() == StatutReservation.EN_ATTENTE
-                && reservation.getAgentPromoteur() == null
-                && reservation.getDateReservation() != null
-                && !reservation.getDateReservation().plusHours(72).isAfter(LocalDateTime.now())) {
-            reservation.annulerAutomatiquement(
-                    "Annulation automatique : aucun agent n'a été affecté dans les 72 heures suivant la demande.");
+        if (reglesResolver.estExpiree(reservation, LocalDateTime.now())) {
+            reservation.annulerAutomatiquement(reglesResolver.motifAnnulation(reservation));
             reservationRepository.save(reservation);
-            throw new BadRequestException("Cette demande a dépassé 72 heures sans agent affecté. Son statut est maintenant annulé.");
+            throw new BadRequestException("Cette demande a dépassé le délai de " + reglesResolver.heures(reservation)
+                    + " heures sans agent affecté. Son statut est maintenant annulé.");
         }
     }
 
@@ -292,7 +277,7 @@ public class ReservationServiceImpl implements ReservationService {
     /** Un bien en réservation unique ne peut pas avoir deux réservations confirmées. */
     private void verifierUniciteConfirmation(Reservation reservation) {
         BienFoncier bien = reservation.getBienFoncier();
-        if (bien != null && !Boolean.TRUE.equals(bien.getReservationMultiple())
+        if (bien != null && !reglesResolver.autoriseReservationMultiple(bien)
                 && reservationRepository.existsByBienFoncierIdAndStatutAndIdNot(
                         bien.getId(), StatutReservation.CONFIRMER, reservation.getId())) {
             throw new BadRequestException("Ce bien a déjà une réservation confirmée et n'autorise pas les réservations multiples");
@@ -345,16 +330,8 @@ public class ReservationServiceImpl implements ReservationService {
     private ReservationResponse mapToResponse(Reservation entity) {
         BienFoncier bien = entity.getBienFoncier();
 
-        String bienDesignation = null;
-        String programmeNom = null;
-        if (bien instanceof LotProgramme lot) {
-            bienDesignation = lot.getNumeroLot();
-            if (lot.getProgrammeFoncier() != null) {
-                programmeNom = lot.getProgrammeFoncier().getNom();
-            }
-        } else if (bien instanceof ParcelleIndividuelle parcelle) {
-            bienDesignation = parcelle.getReference();
-        }
+        String bienDesignation = bien != null ? bien.designation() : null;
+        String programmeNom = bien != null && bien.programmeParent() != null ? bien.programmeParent().getNom() : null;
 
         String acquereurNom = null;
         String acquereurTelephone = null;
@@ -372,7 +349,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .id(entity.getId())
                 .numeroDossier(entity.getNumeroDossier())
                 .dateReservation(entity.getDateReservation())
-                .dateExpiration(entity.getDateExpiration())
+                .dateExpiration(reglesResolver.echeance(entity))
                 .statut(entity.getStatut())
                 .motifRefus(entity.getMotifRefus())
                 .motifAnnulation(entity.getMotifAnnulation())
@@ -383,6 +360,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .bienReference(bien != null ? bien.getReference() : null)
                 .bienDesignation(bienDesignation)
                 .programmeNom(programmeNom)
+                .typeBien(bien != null ? bien.typeBien() : null)
                 .montant(bien != null ? bien.getPrix() : null)
                 .acquereurNom(acquereurNom)
                 .acquereurTelephone(acquereurTelephone)

@@ -49,8 +49,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
             LEFT JOIN lots_programmes lp ON lp.id = b.id
             LEFT JOIN programmes_fonciers pf ON pf.id = lp.programme_id
             LEFT JOIN parcelles_individuelles pi ON pi.id = b.id
+            LEFT JOIN maisons_cle_en_main mc ON mc.id = b.id
             WHERE pf.societe_id = :societeId
                OR pi.societe_id = :societeId
+               OR mc.societe_id = :societeId
             ORDER BY r.date_reservation DESC
             """, nativeQuery = true)
     List<Reservation> findBySocieteId(@Param("societeId") Long societeId);

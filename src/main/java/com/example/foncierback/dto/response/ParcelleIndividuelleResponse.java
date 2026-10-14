@@ -17,6 +17,10 @@ import java.util.List;
 public class ParcelleIndividuelleResponse {
 
     private Long id;
+    /** Photo de couverture (chemin relatif /uploads/medias/…), null si aucune photo. */
+    private String imageUrl;
+    /** Nombre de panoramas 360° de la galerie. */
+    private Long nombrePanoramas;
     private String reference;
     private String numeroTitreFoncier;
     private Double superficie;

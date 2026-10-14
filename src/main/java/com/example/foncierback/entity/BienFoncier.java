@@ -76,15 +76,6 @@ public class BienFoncier {
     @Column(nullable = false, length = 30)
     private StatutParcelle statut;
 
-    /**
-     * Autorisation de réservation multiple : si false (défaut), le bien ne peut avoir qu'une seule
-     * réservation active (EN_ATTENTE ou CONFIRMER) à la fois ; si true, plusieurs prospects peuvent
-     * réserver le même bien en parallèle.
-     */
-    @Builder.Default
-    @Column(name = "reservation_multiple", nullable = false, columnDefinition = "boolean default false")
-    private Boolean reservationMultiple = Boolean.FALSE;
-
     @Builder.Default
     @OneToMany(mappedBy = "bienFoncier", cascade = CascadeType.ALL)
     @ToString.Exclude
@@ -99,4 +90,28 @@ public class BienFoncier {
     )
     @ToString.Exclude
     private List<Commoditer> commodites = new ArrayList<>();
+
+    // --- Comportement propre à chaque type de bien (lot, parcelle, maison clé en main) ---
+    // Méthodes redéfinies par les sous-classes : elles restent correctes à travers un proxy Hibernate,
+    // contrairement à instanceof.
+
+    /** Société qui commercialise le bien. */
+    public SocietePromotrice societeGestionnaire() {
+        return null;
+    }
+
+    /** Libellé court du bien dans les listes (n° de lot, référence, titre). */
+    public String designation() {
+        return reference;
+    }
+
+    /** Programme (cité) auquel appartient le bien, null hors cité. */
+    public ProgrammeFoncier programmeParent() {
+        return null;
+    }
+
+    /** Code du type de bien exposé par l'API. */
+    public String typeBien() {
+        return "BIEN_FONCIER";
+    }
 }

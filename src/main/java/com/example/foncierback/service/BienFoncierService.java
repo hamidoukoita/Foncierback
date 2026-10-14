@@ -17,7 +17,6 @@ public interface BienFoncierService {
     /**
      * Autorise (true) ou interdit (false) plusieurs réservations actives simultanées sur le bien.
      */
-    BienFoncierResponse updateReservationMultiple(Long id, boolean autorise);
 
     BienFoncier findEntityById(Long id);
 }

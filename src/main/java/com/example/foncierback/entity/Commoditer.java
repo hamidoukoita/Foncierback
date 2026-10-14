@@ -1,5 +1,7 @@
 package com.example.foncierback.entity;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -35,19 +37,25 @@ public class Commoditer {
     @Column(length = 255)
     private String description;
 
-    // --- Cardinalités / Relations ---
-
+    // Position GPS (marqueur sur la carte, calcul de distance au bien)
+    @DecimalMin(value = "-90.0", message = "La latitude doit être comprise entre -90 et 90")
+    @DecimalMax(value = "90.0", message = "La latitude doit être comprise entre -90 et 90")
     @Column(name = "latitude")
     private Double latitude;
 
+    @DecimalMin(value = "-180.0", message = "La longitude doit être comprise entre -180 et 180")
+    @DecimalMax(value = "180.0", message = "La longitude doit être comprise entre -180 et 180")
     @Column(name = "longitude")
     private Double longitude;
+
+    // --- Cardinalités / Relations ---
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_commodite_id")
     @ToString.Exclude
     private TypeCommoditer typeCommodite;
 
+    /** Société qui a référencé la commodité (null = référentiel plateforme). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "societe_id")
     @ToString.Exclude

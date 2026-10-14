@@ -13,6 +13,8 @@ import com.example.foncierback.repository.CommoditerRepository;
 import com.example.foncierback.repository.ParcelleIndividuelleRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.service.ParcelleIndividuelleService;
+import com.example.foncierback.service.CouvertureResolver;
+import com.example.foncierback.service.ReglesReservationResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
     private final BienFoncierRepository bienFoncierRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
     private final CommoditerRepository commoditerRepository;
+    private final CouvertureResolver couvertureResolver;
+    private final ReglesReservationResolver reglesResolver;
 
     @Override
     public ParcelleIndividuelleResponse create(ParcelleIndividuelleRequest request) {
@@ -193,6 +197,8 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
 
         return ParcelleIndividuelleResponse.builder()
                 .id(entity.getId())
+                .imageUrl(couvertureResolver.pourBien(entity.getId()))
+                .nombrePanoramas(couvertureResolver.panoramasBien(entity.getId()))
                 .reference(entity.getReference())
                 .numeroTitreFoncier(entity.getNumeroTitreFoncier())
                 .superficie(entity.getSuperficie())
@@ -203,7 +209,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .longitude(entity.getLongitude())
                 .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
-                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
+                .reservationMultiple(reglesResolver.autoriseReservationMultiple(entity))
                 .murCloture(entity.getMurCloture())
                 .eauSomapep(entity.getEauSomapep())
                 .electriciteEdm(entity.getElectriciteEdm())
@@ -221,6 +227,8 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .nom(c.getNom())
                 .icone(c.getIcone())
                 .description(c.getDescription())
+                .latitude(c.getLatitude())
+                .longitude(c.getLongitude())
                 .typeCommoditeId(c.getTypeCommodite() != null ? c.getTypeCommodite().getId() : null)
                 .typeCommoditeLibelle(c.getTypeCommodite() != null ? c.getTypeCommodite().getLibelle() : null)
                 .build();

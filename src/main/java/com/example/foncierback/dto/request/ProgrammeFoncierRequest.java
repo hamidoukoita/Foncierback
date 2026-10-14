@@ -1,5 +1,7 @@
 package com.example.foncierback.dto.request;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import com.example.foncierback.entity.enums.StatutProgramme;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -26,6 +28,14 @@ public class ProgrammeFoncierRequest {
 
     @Size(max = 200, message = "Le lieu ne doit pas dépasser 200 caractères")
     private String lieu;
+
+    @DecimalMin(value = "-90.0", message = "La latitude doit être comprise entre -90 et 90")
+    @DecimalMax(value = "90.0", message = "La latitude doit être comprise entre -90 et 90")
+    private Double latitude;
+
+    @DecimalMin(value = "-180.0", message = "La longitude doit être comprise entre -180 et 180")
+    @DecimalMax(value = "180.0", message = "La longitude doit être comprise entre -180 et 180")
+    private Double longitude;
 
     @NotBlank(message = "Le numéro du Titre Foncier mère est obligatoire")
     @Size(max = 100, message = "Le numéro du Titre Foncier mère ne doit pas dépasser 100 caractères")

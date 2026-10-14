@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class RendezVousController {
     private final RendezVousService rendezVousService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('ACQUEREUR') and @securityUtils.isOwnerOrAdmin(#request.acquereurId))")
     @Operation(summary = "Créer un nouveau rendez-vous")
     public ResponseEntity<ApiResponse<RendezVousResponse>> create(@Valid @RequestBody RendezVousRequest request) {
         RendezVousResponse response = rendezVousService.create(request);
@@ -31,6 +33,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'ACQUEREUR')")
     @Operation(summary = "Récupérer un rendez-vous par son ID")
     public ResponseEntity<ApiResponse<RendezVousResponse>> getById(@PathVariable Long id) {
         RendezVousResponse response = rendezVousService.getById(id);
@@ -38,6 +41,7 @@ public class RendezVousController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Lister tous les rendez-vous")
     public ResponseEntity<ApiResponse<List<RendezVousResponse>>> getAll() {
         List<RendezVousResponse> list = rendezVousService.getAll();
@@ -45,6 +49,7 @@ public class RendezVousController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Modifier un rendez-vous existant")
     public ResponseEntity<ApiResponse<RendezVousResponse>> update(
             @PathVariable Long id,
@@ -55,6 +60,7 @@ public class RendezVousController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer un rendez-vous")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         rendezVousService.delete(id);
@@ -63,6 +69,7 @@ public class RendezVousController {
 
 
     @PatchMapping("/{id}/agent/{agentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Attribuer un agent à un rendez-vous (passe le statut à ACCEPTER)")
     public ResponseEntity<ApiResponse<RendezVousResponse>> assignerAgent(
             @PathVariable Long id,
@@ -73,6 +80,7 @@ public class RendezVousController {
     }
 
     @PatchMapping("/{id}/accepter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Accepter un rendez-vous")
     public ResponseEntity<ApiResponse<RendezVousResponse>> accepter(@PathVariable Long id) {
         RendezVousResponse response = rendezVousService.accepter(id);
@@ -80,6 +88,7 @@ public class RendezVousController {
     }
 
     @PatchMapping("/{id}/refuser")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Refuser un rendez-vous")
     public ResponseEntity<ApiResponse<RendezVousResponse>> refuser(
             @PathVariable Long id,
@@ -89,7 +98,16 @@ public class RendezVousController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Rendez-vous refusé avec succès", response));
     }
 
+    @PatchMapping("/{id}/annuler")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
+    @Operation(summary = "Annuler son rendez-vous (acquéreur), tant qu'il n'est pas passé")
+    public ResponseEntity<ApiResponse<RendezVousResponse>> annuler(@PathVariable Long id) {
+        RendezVousResponse response = rendezVousService.annulerParAcquereur(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Rendez-vous annulé avec succès", response));
+    }
+
     @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Changer le statut d'un rendez-vous")
     public ResponseEntity<ApiResponse<RendezVousResponse>> changerStatut(
             @PathVariable Long id,
@@ -101,6 +119,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/acquereur/{acquereurId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#acquereurId)")
     @Operation(summary = "Lister les rendez-vous d'un acquéreur")
     public ResponseEntity<ApiResponse<List<RendezVousResponse>>> findByAcquereur(@PathVariable Long acquereurId) {
         List<RendezVousResponse> list = rendezVousService.findByAcquereur(acquereurId);
@@ -108,6 +127,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/agent/{agentId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and @securityUtils.isOwnerOrAdmin(#agentId))")
     @Operation(summary = "Lister les rendez-vous d'un agent")
     public ResponseEntity<ApiResponse<List<RendezVousResponse>>> findByAgent(@PathVariable Long agentId) {
         List<RendezVousResponse> list = rendezVousService.findByAgent(agentId);
@@ -115,6 +135,7 @@ public class RendezVousController {
     }
 
     @GetMapping("/societe/{societeId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
     @Operation(summary = "Lister les rendez-vous d'une société promotrice")
     public ResponseEntity<ApiResponse<List<RendezVousResponse>>> findBySociete(@PathVariable Long societeId) {
         List<RendezVousResponse> list = rendezVousService.findBySociete(societeId);

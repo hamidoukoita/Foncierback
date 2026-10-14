@@ -1,6 +1,7 @@
 package com.example.foncierback.service;
 
 import com.example.foncierback.dto.request.AcquereurRequest;
+import com.example.foncierback.dto.request.IdentiteRequest;
 import com.example.foncierback.dto.response.AcquereurResponse;
 import com.example.foncierback.entity.Acquereur;
 
@@ -19,4 +20,7 @@ public interface AcquereurService {
     void delete(Long id);
 
     Acquereur findEntityById(Long id);
+
+    /** Met à jour uniquement le nom et le prénom (les autres champs restent intacts). */
+    AcquereurResponse modifierIdentite(Long id, IdentiteRequest request);
 }

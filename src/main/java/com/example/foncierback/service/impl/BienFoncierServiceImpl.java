@@ -6,13 +6,14 @@ import com.example.foncierback.dto.response.CommoditerResponse;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Commoditer;
 import com.example.foncierback.entity.LotProgramme;
+import com.example.foncierback.entity.MaisonCleEnMain;
 import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.enums.StatutParcelle;
 import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.service.BienFoncierService;
-import com.example.foncierback.config.security.SecurityUtils;
+import com.example.foncierback.service.CouvertureResolver;
+import com.example.foncierback.service.ReglesReservationResolver;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,8 @@ import java.util.List;
 public class BienFoncierServiceImpl implements BienFoncierService {
 
     private final BienFoncierRepository bienFoncierRepository;
+    private final CouvertureResolver couvertureResolver;
+    private final ReglesReservationResolver reglesResolver;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,28 +54,6 @@ public class BienFoncierServiceImpl implements BienFoncierService {
     }
 
     @Override
-    public BienFoncierResponse updateReservationMultiple(Long id, boolean autorise) {
-        BienFoncier bien = findEntityById(id);
-
-        // Un agent ne peut modifier que les biens de sa propre société promotrice (l'ADMIN peut tout modifier).
-        if (!SecurityUtils.isAdmin()) {
-            Long societeBien = null;
-            if (bien instanceof LotProgramme lot && lot.getProgrammeFoncier() != null
-                    && lot.getProgrammeFoncier().getSocietePromotrice() != null) {
-                societeBien = lot.getProgrammeFoncier().getSocietePromotrice().getId();
-            } else if (bien instanceof ParcelleIndividuelle parcelle && parcelle.getSocietePromotrice() != null) {
-                societeBien = parcelle.getSocietePromotrice().getId();
-            }
-            if (societeBien == null || !SecurityUtils.belongsToSocieteOrAdmin(societeBien)) {
-                throw new AccessDeniedException("Ce bien n'appartient pas à votre société promotrice");
-            }
-        }
-
-        bien.setReservationMultiple(autorise);
-        return mapToResponse(bienFoncierRepository.save(bien));
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public BienFoncier findEntityById(Long id) {
         return bienFoncierRepository.findById(id)
@@ -86,6 +67,8 @@ public class BienFoncierServiceImpl implements BienFoncierService {
 
         BienFoncierResponse.BienFoncierResponseBuilder builder = BienFoncierResponse.builder()
                 .id(entity.getId())
+                .imageUrl(couvertureResolver.pourBien(entity.getId()))
+                .nombrePanoramas(couvertureResolver.panoramasBien(entity.getId()))
                 .reference(entity.getReference())
                 .superficie(entity.getSuperficie())
                 .prix(entity.getPrix())
@@ -94,7 +77,7 @@ public class BienFoncierServiceImpl implements BienFoncierService {
                 .latitude(entity.getLatitude())
                 .longitude(entity.getLongitude())
                 .statut(entity.getStatut())
-                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
+                .reservationMultiple(reglesResolver.autoriseReservationMultiple(entity))
                 .commodites(commodites);
 
         if (entity instanceof LotProgramme lot) {
@@ -113,6 +96,13 @@ public class BienFoncierServiceImpl implements BienFoncierService {
                     .voieBitumee(parcelle.getVoieBitumee())
                     .societeId(parcelle.getSocietePromotrice() != null ? parcelle.getSocietePromotrice().getId() : null)
                     .societeNom(parcelle.getSocietePromotrice() != null ? parcelle.getSocietePromotrice().getNom() : null);
+        } else if (entity instanceof MaisonCleEnMain maison) {
+            builder.typeBien(maison.typeBien())
+                    .titre(maison.getTitre())
+                    .adresse(maison.getAdresse())
+                    .numeroTitreFoncier(maison.getNumeroTitreFoncier())
+                    .societeId(maison.getSocietePromotrice() != null ? maison.getSocietePromotrice().getId() : null)
+                    .societeNom(maison.getSocietePromotrice() != null ? maison.getSocietePromotrice().getNom() : null);
         } else {
             builder.typeBien("BIEN_FONCIER");
         }
@@ -127,6 +117,8 @@ public class BienFoncierServiceImpl implements BienFoncierService {
                 .nom(c.getNom())
                 .icone(c.getIcone())
                 .description(c.getDescription())
+                .latitude(c.getLatitude())
+                .longitude(c.getLongitude())
                 .typeCommoditeId(c.getTypeCommodite() != null ? c.getTypeCommodite().getId() : null)
                 .typeCommoditeLibelle(c.getTypeCommodite() != null ? c.getTypeCommodite().getLibelle() : null)
                 .build();

@@ -42,4 +42,24 @@ public class LotProgramme extends BienFoncier {
     @JsonIgnore
     private ProgrammeFoncier programmeFoncier;
 
+
+    @Override
+    public SocietePromotrice societeGestionnaire() {
+        return programmeFoncier != null ? programmeFoncier.getSocietePromotrice() : null;
+    }
+
+    @Override
+    public String designation() {
+        return numeroLot != null ? numeroLot : getReference();
+    }
+
+    @Override
+    public ProgrammeFoncier programmeParent() {
+        return programmeFoncier;
+    }
+
+    @Override
+    public String typeBien() {
+        return "LOT_PROGRAMME";
+    }
 }

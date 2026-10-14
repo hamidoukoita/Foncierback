@@ -1,12 +1,15 @@
 package com.example.foncierback.service.impl;
 
 import com.example.foncierback.common.exception.BadRequestException;
+import com.example.foncierback.config.security.SecurityUtils;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
+import com.example.foncierback.dto.request.ReglesReservationRequest;
 import com.example.foncierback.dto.request.SocietePromotriceRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.enums.StatutAgrement;
 import com.example.foncierback.repository.SocietePromotriceRepository;
+import com.example.foncierback.service.ReglesReservationResolver;
 import com.example.foncierback.service.SocietePromotriceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -109,18 +112,35 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
         existing.setAdresse(request.getAdresse());
         existing.setTelephone(request.getTelephone());
         existing.setEmail(request.getEmail());
-        existing.setNif(request.getNif());
-        existing.setNumeroAgrement(request.getNumeroAgrement());
-        existing.setDateAgrement(request.getDateAgrement());
-        if (request.getStatutAgrement() != null) {
-            existing.setStatutAgrement(request.getStatutAgrement());
-        }
-        existing.setLogoUrl(request.getLogoUrl());
         existing.setSiteWeb(request.getSiteWeb());
-        existing.setDescription(request.getDescription());
+        if (request.getLogoUrl() != null) {
+            existing.setLogoUrl(request.getLogoUrl());
+        }
+        if (request.getDescription() != null) {
+            existing.setDescription(request.getDescription());
+        }
+
+        // Identifiants légaux et statut d'agrément : réservés à l'administration
+        // (sinon une société pourrait valider elle-même son agrément).
+        if (SecurityUtils.isAdmin()) {
+            existing.setNif(request.getNif());
+            existing.setNumeroAgrement(request.getNumeroAgrement());
+            existing.setDateAgrement(request.getDateAgrement());
+            if (request.getStatutAgrement() != null) {
+                existing.setStatutAgrement(request.getStatutAgrement());
+            }
+        }
 
         SocietePromotrice updated = societePromotriceRepository.save(existing);
         return mapToResponse(updated);
+    }
+
+    @Override
+    public SocietePromotriceResponse updateReglesReservation(Long id, ReglesReservationRequest request) {
+        SocietePromotrice existing = findEntityById(id);
+        existing.setDelaiAttributionHeures(request.getDelaiAttributionHeures());
+        existing.setReservationMultiple(request.getReservationMultiple());
+        return mapToResponse(societePromotriceRepository.save(existing));
     }
 
     @Override
@@ -150,6 +170,10 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
                 .logoUrl(entity.getLogoUrl())
                 .siteWeb(entity.getSiteWeb())
                 .description(entity.getDescription())
+                .delaiAttributionHeures(entity.getDelaiAttributionHeures() != null
+                        ? entity.getDelaiAttributionHeures()
+                        : ReglesReservationResolver.DELAI_PAR_DEFAUT_HEURES)
+                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
                 .build();
     }
 }

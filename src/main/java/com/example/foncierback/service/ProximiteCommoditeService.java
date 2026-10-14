@@ -9,11 +9,15 @@ public interface ProximiteCommoditeService {
 
     ProximiteCommoditeResponse create(ProximiteCommoditeRequest request);
 
-    ProximiteCommoditeResponse getById(Long id);
-
-    List<ProximiteCommoditeResponse> getBySocieteId(Long societeId);
-
     ProximiteCommoditeResponse update(Long id, ProximiteCommoditeRequest request);
 
     void delete(Long id);
+
+    ProximiteCommoditeResponse getById(Long id);
+
+    List<ProximiteCommoditeResponse> findByProgramme(Long programmeId);
+
+    List<ProximiteCommoditeResponse> findByBien(Long bienId);
+
+    List<ProximiteCommoditeResponse> findBySociete(Long societeId);
 }

@@ -25,6 +25,9 @@ public interface RendezVousService {
 
     RendezVousResponse refuser(Long id, String motifRefus);
 
+    /** Annulation par l'acquéreur de son propre rendez-vous, tant qu'il n'est pas passé. */
+    RendezVousResponse annulerParAcquereur(Long id);
+
     /** Attribue un agent et passe le RDV en ACCEPTER. */
     RendezVousResponse assignerAgent(Long id, Long agentId);
 

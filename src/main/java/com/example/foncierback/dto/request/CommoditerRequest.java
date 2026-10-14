@@ -1,5 +1,7 @@
 package com.example.foncierback.dto.request;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -23,11 +25,16 @@ public class CommoditerRequest {
     @Size(max = 255, message = "La description ne doit pas dépasser 255 caractères")
     private String description;
 
-    private Long typeCommoditeId;
-
-    private Long societeId;
-
+    @DecimalMin(value = "-90.0", message = "La latitude doit être comprise entre -90 et 90")
+    @DecimalMax(value = "90.0", message = "La latitude doit être comprise entre -90 et 90")
     private Double latitude;
 
+    @DecimalMin(value = "-180.0", message = "La longitude doit être comprise entre -180 et 180")
+    @DecimalMax(value = "180.0", message = "La longitude doit être comprise entre -180 et 180")
     private Double longitude;
+
+    private Long typeCommoditeId;
+
+    /** Ignoré pour un agent : la société de l'agent connecté est imposée. */
+    private Long societeId;
 }

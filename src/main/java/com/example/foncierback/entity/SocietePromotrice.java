@@ -71,6 +71,15 @@ public class SocietePromotrice {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /** Heures laissées pour affecter un agent à une demande de réservation (null = délai par défaut). */
+    @Column(name = "delai_attribution_heures")
+    private Integer delaiAttributionHeures;
+
+    /** Si vrai, un même lot ou une même parcelle peut être réservé (et confirmé) pour plusieurs acquéreurs. */
+    @Builder.Default
+    @Column(name = "reservation_multiple", nullable = false, columnDefinition = "boolean default false")
+    private Boolean reservationMultiple = Boolean.FALSE;
+
     // --- Cardinalités / Relations ---
 
     @Builder.Default
