@@ -43,7 +43,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
             "image/png", "png",
             "image/webp", "webp"
     );
-    private static final String PREFIXE_URL = "/uploads/medias/";
+    private static final String PREFIXE_URL = com.example.foncierback.service.CouvertureResolver.PREFIXE_URL;
 
     private final MediaFoncierRepository mediaRepository;
     private final ProgrammeFoncierRepository programmeRepository;
@@ -116,6 +116,28 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
         media.setTitre(nettoyer(request.getTitre()));
         media.setDescription(nettoyer(request.getDescription()));
         return mapToResponse(mediaRepository.save(media));
+    }
+
+    @Override
+    public MediaFoncierResponse definirCouverture(Long id) {
+        MediaFoncier couverture = findMedia(id);
+        if (couverture.getType() != TypeMedia.PHOTO) {
+            throw new BadRequestException("Seule une photo peut servir de couverture");
+        }
+        List<MediaFoncier> galerie = couverture.getProgrammeFoncier() != null
+                ? mediaRepository.findByProgrammeFoncierIdOrderByOrdreAscIdAsc(couverture.getProgrammeFoncier().getId())
+                : mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(couverture.getBienFoncier().getId());
+
+        // La couverture passe en premier ; les autres médias gardent leur ordre relatif.
+        int ordre = 1;
+        couverture.setOrdre(ordre++);
+        for (MediaFoncier media : galerie) {
+            if (!media.getId().equals(couverture.getId())) {
+                media.setOrdre(ordre++);
+            }
+        }
+        mediaRepository.saveAll(galerie);
+        return mapToResponse(couverture);
     }
 
     @Override

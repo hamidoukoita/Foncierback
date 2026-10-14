@@ -17,6 +17,10 @@ import java.util.List;
 public class BienFoncierResponse {
 
     private Long id;
+    /** Photo de couverture (chemin relatif /uploads/medias/…), null si aucune photo. */
+    private String imageUrl;
+    /** Nombre de panoramas 360° de la galerie. */
+    private Long nombrePanoramas;
     private String reference;
     private Double superficie;
     private BigDecimal prix;
@@ -27,7 +31,10 @@ public class BienFoncierResponse {
     private StatutParcelle statut;
     /** Le bien accepte-t-il plusieurs réservations actives en parallèle ? */
     private Boolean reservationMultiple;
-    private String typeBien; // "LOT_PROGRAMME" ou "PARCELLE_INDIVIDUELLE"
+    private String typeBien;
+    /** Maison clé en main : titre de l'annonce et adresse. */
+    private String titre;
+    private String adresse; // "LOT_PROGRAMME" ou "PARCELLE_INDIVIDUELLE"
 
     @Builder.Default
     private List<CommoditerResponse> commodites = new ArrayList<>();

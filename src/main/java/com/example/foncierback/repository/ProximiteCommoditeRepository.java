@@ -15,7 +15,18 @@ public interface ProximiteCommoditeRepository extends JpaRepository<ProximiteCom
 
     List<ProximiteCommodite> findByBienFoncierId(Long bienId);
 
-    @Query("SELECT p FROM ProximiteCommodite p WHERE p.commodite.societePromotrice.id = :societeId")
+    /** Rattachements des commodités de la société ou de ses cités (chargement groupé). */
+    @Query("""
+        SELECT DISTINCT p FROM ProximiteCommodite p
+        LEFT JOIN FETCH p.commodite c
+        LEFT JOIN FETCH c.typeCommodite
+        LEFT JOIN FETCH c.societePromotrice
+        LEFT JOIN FETCH p.programmeFoncier prog
+        LEFT JOIN FETCH prog.societePromotrice
+        LEFT JOIN FETCH p.bienFoncier
+        WHERE c.societePromotrice.id = :societeId
+           OR prog.societePromotrice.id = :societeId
+        """)
     List<ProximiteCommodite> findBySocieteId(@Param("societeId") Long societeId);
 
     boolean existsByCommoditeIdAndProgrammeFoncierId(Long commoditeId, Long programmeId);

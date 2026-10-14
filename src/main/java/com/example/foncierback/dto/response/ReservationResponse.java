@@ -34,4 +34,6 @@ public class ReservationResponse {
     private String acquereurNom;
     private String acquereurTelephone;
     private String agentNom;
+    /** LOT_PROGRAMME, PARCELLE_INDIVIDUELLE ou MAISON_CLE_EN_MAIN. */
+    private String typeBien;
 }

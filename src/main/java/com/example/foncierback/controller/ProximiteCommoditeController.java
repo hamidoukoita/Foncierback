@@ -50,6 +50,12 @@ public class ProximiteCommoditeController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Rattachement supprimé avec succès", null));
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Récupérer un rattachement")
+    public ResponseEntity<ApiResponse<ProximiteCommoditeResponse>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Rattachement", proximiteService.getById(id)));
+    }
+
     @GetMapping("/programme/{programmeId}")
     @Operation(summary = "Commodités de proximité d'une cité")
     public ResponseEntity<ApiResponse<List<ProximiteCommoditeResponse>>> getByProgramme(@PathVariable Long programmeId) {

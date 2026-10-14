@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,7 @@ public class MediaFoncierController {
     }
 
     @PostMapping(value = "/programme/{programmeId}/fichier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Ajouter une photo ou un panorama 360° à un programme")
     public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterFichierProgramme(
             @PathVariable Long programmeId,
@@ -50,6 +52,7 @@ public class MediaFoncierController {
     }
 
     @PostMapping(value = "/bien/{bienId}/fichier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Ajouter une photo ou un panorama 360° à un bien")
     public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterFichierBien(
             @PathVariable Long bienId,
@@ -62,6 +65,7 @@ public class MediaFoncierController {
     }
 
     @PostMapping("/programme/{programmeId}/lien")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Ajouter une visite virtuelle (lien https) à un programme")
     public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienProgramme(
             @PathVariable Long programmeId, @Valid @RequestBody MediaLienRequest request) {
@@ -70,6 +74,7 @@ public class MediaFoncierController {
     }
 
     @PostMapping("/bien/{bienId}/lien")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Ajouter une visite virtuelle (lien https) à un bien")
     public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienBien(
             @PathVariable Long bienId, @Valid @RequestBody MediaLienRequest request) {
@@ -78,13 +83,22 @@ public class MediaFoncierController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Modifier le titre et la description d'un média")
     public ResponseEntity<ApiResponse<MediaFoncierResponse>> update(
             @PathVariable Long id, @Valid @RequestBody MediaUpdateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Média mis à jour avec succès", mediaService.update(id, request)));
     }
 
+    @PatchMapping("/{id}/couverture")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Définir une photo comme couverture de la cité ou du bien")
+    public ResponseEntity<ApiResponse<MediaFoncierResponse>> definirCouverture(@PathVariable Long id) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Photo de couverture mise à jour", mediaService.definirCouverture(id)));
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Supprimer un média")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         mediaService.delete(id);

@@ -2,9 +2,7 @@ package com.example.foncierback.service.impl;
 
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.BienFoncier;
-import com.example.foncierback.entity.LotProgramme;
 import com.example.foncierback.entity.Notification;
-import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.TypeNotification;
 import com.example.foncierback.entity.Utilisateur;
@@ -56,12 +54,8 @@ public class NotificationDispatchService {
     }
 
     public void notifySocietePourBien(BienFoncier bien, String code, String libelle, String titre, String message) {
-        if (bien instanceof LotProgramme lot && lot.getProgrammeFoncier() != null) {
-            notifySociete(lot.getProgrammeFoncier().getSocietePromotrice(), code, libelle, titre, message);
-            return;
-        }
-        if (bien instanceof ParcelleIndividuelle parcelle) {
-            notifySociete(parcelle.getSocietePromotrice(), code, libelle, titre, message);
+        if (bien != null && bien.societeGestionnaire() != null) {
+            notifySociete(bien.societeGestionnaire(), code, libelle, titre, message);
         }
     }
 

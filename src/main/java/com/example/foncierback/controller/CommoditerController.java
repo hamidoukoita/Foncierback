@@ -45,19 +45,20 @@ public class CommoditerController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des commodités", list));
     }
 
+    
+    @GetMapping("/societe/{societeId}")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
+    @Operation(summary = "Lister les commodités d'une société promotrice")
+    public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getBySocieteId(@PathVariable Long societeId) {
+        List<CommoditerResponse> list = commoditerService.getBySocieteId(societeId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Commodités de la société", list));
+    }
+
     @GetMapping("/type/{typeCommoditeId}")
     @Operation(summary = "Lister les commodités par type de commodité")
     public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getByTypeCommoditeId(@PathVariable Long typeCommoditeId) {
         List<CommoditerResponse> list = commoditerService.getByTypeCommoditeId(typeCommoditeId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Liste des commodités pour le type " + typeCommoditeId, list));
-    }
-
-    @GetMapping("/societe/{societeId}")
-    @PreAuthorize("hasRole('ADMIN') or @securityUtils.belongsToSocieteOrAdmin(#societeId)")
-    @Operation(summary = "Lister les commodités référencées par une société")
-    public ResponseEntity<ApiResponse<List<CommoditerResponse>>> getBySociete(@PathVariable Long societeId) {
-        List<CommoditerResponse> list = commoditerService.getBySociete(societeId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Commodités de la société " + societeId, list));
     }
 
     @GetMapping("/search")

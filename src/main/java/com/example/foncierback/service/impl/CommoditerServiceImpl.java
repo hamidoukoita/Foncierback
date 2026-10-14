@@ -72,7 +72,10 @@ public class CommoditerServiceImpl implements CommoditerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommoditerResponse> getBySociete(Long societeId) {
+    public List<CommoditerResponse> getBySocieteId(Long societeId) {
+        if (!societePromotriceRepository.existsById(societeId)) {
+            throw new ResourceNotFoundException("Société promotrice introuvable avec l'identifiant : " + societeId);
+        }
         return commoditerRepository.findBySocietePromotriceId(societeId)
                 .stream()
                 .map(this::mapToResponse)

@@ -42,6 +42,21 @@ public class ProjetConstructionRequest {
 
     private BigDecimal budgetEstime;
 
+    /** Modèle personnalisé : à renseigner quand aucun modèle du catalogue n'est choisi. */
+    @Size(max = 3000, message = "La description du modèle ne doit pas dépasser 3000 caractères")
+    private String descriptionModelePersonnalise;
+
+    @Min(value = 0, message = "Le nombre de chambres ne peut pas être négatif")
+    @Max(value = 30, message = "Le nombre de chambres semble incorrect")
+    private Integer nombreChambresSouhaitees;
+
+    @Min(value = 0, message = "Le nombre de salles de bain ne peut pas être négatif")
+    @Max(value = 30, message = "Le nombre de salles de bain semble incorrect")
+    private Integer nombreSallesBainSouhaitees;
+
+    @Positive(message = "La surface construite doit être strictement positive")
+    private Double surfaceConstruiteSouhaitee;
+
     private String documentTfUrl;
 
     private StatutProjet statut;
@@ -62,6 +77,9 @@ public class ProjetConstructionRequest {
     private Long acquereurId;
 
     private Long modelMaisonId;
+
+    /** Maison clé en main de la société prise comme référence (alternative au modèle du catalogue). */
+    private Long maisonCleEnMainId;
 
     private Long societeId;
 

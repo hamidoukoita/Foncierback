@@ -8,8 +8,6 @@ import com.example.foncierback.entity.Acquereur;
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Creneau;
-import com.example.foncierback.entity.LotProgramme;
-import com.example.foncierback.entity.ParcelleIndividuelle;
 import com.example.foncierback.entity.RendezVous;
 import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.entity.enums.StatutRendezVous;
@@ -19,6 +17,8 @@ import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.CreneauRepository;
 import com.example.foncierback.repository.RendezVousRepository;
 import com.example.foncierback.service.RendezVousService;
+import com.example.foncierback.config.security.SecurityUtils;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +30,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class RendezVousServiceImpl implements RendezVousService {
+
+    /** Les fronts ne connaissent que EN_ATTENTE / ACCEPTER / REFUSER : l'annulation est un refus motivé. */
+    static final String MOTIF_ANNULATION_ACQUEREUR = "Annulé par l'acquéreur";
 
     private final RendezVousRepository rendezVousRepository;
     private final AcquereurRepository acquereurRepository;
@@ -184,6 +187,25 @@ public class RendezVousServiceImpl implements RendezVousService {
         return mapToResponse(saved);
     }
 
+    @Override
+    public RendezVousResponse annulerParAcquereur(Long id) {
+        RendezVous existing = findEntityById(id);
+
+        if (!SecurityUtils.isAdmin()
+                && (existing.getAcquereur() == null
+                || !SecurityUtils.isOwnerOrAdmin(existing.getAcquereur().getId()))) {
+            throw new AccessDeniedException("Vous ne pouvez annuler que vos propres rendez-vous.");
+        }
+        if (existing.getStatut() == StatutRendezVous.REFUSER) {
+            throw new BadRequestException("Ce rendez-vous est déjà annulé ou refusé.");
+        }
+        if (existing.getDateRendezVous() != null && existing.getDateRendezVous().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Ce rendez-vous est déjà passé et ne peut plus être annulé.");
+        }
+
+        existing.refuser(MOTIF_ANNULATION_ACQUEREUR);
+        return mapToResponse(rendezVousRepository.save(existing));
+    }
 
     /**
      * Attribue un agent au rendez-vous et passe automatiquement le statut à ACCEPTER.
@@ -245,16 +267,8 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     private RendezVousResponse mapToResponse(RendezVous entity) {
         BienFoncier bien = entity.getBienFoncier();
-        String bienDesignation = null;
-        String programmeNom = null;
-        if (bien instanceof LotProgramme lot) {
-            bienDesignation = lot.getNumeroLot();
-            if (lot.getProgrammeFoncier() != null) {
-                programmeNom = lot.getProgrammeFoncier().getNom();
-            }
-        } else if (bien instanceof ParcelleIndividuelle parcelle) {
-            bienDesignation = parcelle.getReference();
-        }
+        String bienDesignation = bien != null ? bien.designation() : null;
+        String programmeNom = bien != null && bien.programmeParent() != null ? bien.programmeParent().getNom() : null;
 
         String acquereurNom = null;
         String acquereurTelephone = null;
@@ -295,6 +309,7 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .bienReference(bien != null ? bien.getReference() : null)
                 .bienDesignation(bienDesignation)
                 .programmeNom(programmeNom)
+                .typeBien(bien != null ? bien.typeBien() : null)
                 .acquereurNom(acquereurNom)
                 .acquereurTelephone(acquereurTelephone)
                 .agentNom(agentNom)

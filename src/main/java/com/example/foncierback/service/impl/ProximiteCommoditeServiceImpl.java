@@ -10,6 +10,7 @@ import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.CommoditerRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.repository.ProximiteCommoditeRepository;
+import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.service.CommoditerService;
 import com.example.foncierback.service.ProximiteCommoditeService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ProximiteCommoditeServiceImpl implements ProximiteCommoditeService 
     private final ProgrammeFoncierRepository programmeFoncierRepository;
     private final BienFoncierRepository bienFoncierRepository;
     private final CommoditerService commoditerService;
+    private final SocietePromotriceRepository societePromotriceRepository;
 
     @Override
     public ProximiteCommoditeResponse create(ProximiteCommoditeRequest request) {
@@ -65,6 +67,12 @@ public class ProximiteCommoditeServiceImpl implements ProximiteCommoditeService 
 
     @Override
     @Transactional(readOnly = true)
+    public ProximiteCommoditeResponse getById(Long id) {
+        return mapToResponse(findEntityById(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ProximiteCommoditeResponse> findByProgramme(Long programmeId) {
         return proximiteRepository.findByProgrammeFoncierId(programmeId).stream()
                 .map(this::mapToResponse)
@@ -82,6 +90,9 @@ public class ProximiteCommoditeServiceImpl implements ProximiteCommoditeService 
     @Override
     @Transactional(readOnly = true)
     public List<ProximiteCommoditeResponse> findBySociete(Long societeId) {
+        if (!societePromotriceRepository.existsById(societeId)) {
+            throw new ResourceNotFoundException("Société introuvable : " + societeId);
+        }
         return proximiteRepository.findBySocieteId(societeId).stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -136,13 +147,7 @@ public class ProximiteCommoditeServiceImpl implements ProximiteCommoditeService 
     }
 
     private Long societeDuBien(BienFoncier bien) {
-        if (bien instanceof ParcelleIndividuelle parcelle) {
-            return idSociete(parcelle.getSocietePromotrice());
-        }
-        if (bien instanceof LotProgramme lot && lot.getProgrammeFoncier() != null) {
-            return idSociete(lot.getProgrammeFoncier().getSocietePromotrice());
-        }
-        return null;
+        return bien != null ? idSociete(bien.societeGestionnaire()) : null;
     }
 
     private Long idSociete(SocietePromotrice societe) {

@@ -79,9 +79,6 @@ public class Reservation {
         if (this.dateReservation == null) {
             this.dateReservation = LocalDateTime.now();
         }
-        if (this.dateExpiration == null) {
-            this.dateExpiration = this.dateReservation.plusHours(24);
-        }
         if (this.statut == null) {
             this.statut = StatutReservation.EN_ATTENTE;
         }

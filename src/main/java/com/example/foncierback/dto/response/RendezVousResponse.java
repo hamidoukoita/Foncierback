@@ -38,4 +38,6 @@ public class RendezVousResponse {
     private String creneauHeure;
     private String creneauHeureDebut;
     private String creneauHeureFin;
+    /** LOT_PROGRAMME, PARCELLE_INDIVIDUELLE ou MAISON_CLE_EN_MAIN. */
+    private String typeBien;
 }

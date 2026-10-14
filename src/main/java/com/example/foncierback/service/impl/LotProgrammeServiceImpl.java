@@ -13,6 +13,8 @@ import com.example.foncierback.repository.CommoditerRepository;
 import com.example.foncierback.repository.LotProgrammeRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.service.LotProgrammeService;
+import com.example.foncierback.service.CouvertureResolver;
+import com.example.foncierback.service.ReglesReservationResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
     private final ProgrammeFoncierRepository programmeFoncierRepository;
     private final BienFoncierRepository bienFoncierRepository;
     private final CommoditerRepository commoditerRepository;
+    private final CouvertureResolver couvertureResolver;
+    private final ReglesReservationResolver reglesResolver;
 
     @Override
     public LotProgrammeResponse create(LotProgrammeRequest request) {
@@ -176,6 +180,8 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
 
         return LotProgrammeResponse.builder()
                 .id(entity.getId())
+                .imageUrl(couvertureResolver.pourBien(entity.getId()))
+                .nombrePanoramas(couvertureResolver.panoramasBien(entity.getId()))
                 .reference(entity.getReference())
                 .superficie(entity.getSuperficie())
                 .prix(entity.getPrix())
@@ -185,7 +191,7 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
                 .longitude(entity.getLongitude())
                 .geometryJson(entity.getGeometryJson())
                 .statut(entity.getStatut())
-                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
+                .reservationMultiple(reglesResolver.autoriseReservationMultiple(entity))
                 .numeroLot(entity.getNumeroLot())
                 .numeroIlot(entity.getNumeroIlot())
                 .numeroIlotLotissement(entity.getNumeroIlotLotissement())

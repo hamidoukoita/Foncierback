@@ -52,4 +52,14 @@ public class ParcelleIndividuelle extends BienFoncier {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "societe_id")
     private SocietePromotrice societePromotrice;
+
+    @Override
+    public SocietePromotrice societeGestionnaire() {
+        return societePromotrice;
+    }
+
+    @Override
+    public String typeBien() {
+        return "PARCELLE_INDIVIDUELLE";
+    }
 }

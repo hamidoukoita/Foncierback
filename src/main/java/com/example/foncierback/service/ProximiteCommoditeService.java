@@ -13,6 +13,8 @@ public interface ProximiteCommoditeService {
 
     void delete(Long id);
 
+    ProximiteCommoditeResponse getById(Long id);
+
     List<ProximiteCommoditeResponse> findByProgramme(Long programmeId);
 
     List<ProximiteCommoditeResponse> findByBien(Long bienId);

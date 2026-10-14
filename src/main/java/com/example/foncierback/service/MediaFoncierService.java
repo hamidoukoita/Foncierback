@@ -24,4 +24,7 @@ public interface MediaFoncierService {
     MediaFoncierResponse update(Long id, MediaUpdateRequest request);
 
     void delete(Long id);
+
+    /** Place la photo en tête de sa galerie : elle devient la couverture de la cité ou du bien. */
+    MediaFoncierResponse definirCouverture(Long id);
 }

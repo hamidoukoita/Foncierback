@@ -53,6 +53,20 @@ public class ProjetConstruction {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // --- Modèle personnalisé (quand l'acquéreur ne choisit pas un modèle du catalogue) ---
+
+    @Column(name = "description_modele_personnalise", columnDefinition = "TEXT")
+    private String descriptionModelePersonnalise;
+
+    @Column(name = "nombre_chambres_souhaitees")
+    private Integer nombreChambresSouhaitees;
+
+    @Column(name = "nombre_salles_bain_souhaitees")
+    private Integer nombreSallesBainSouhaitees;
+
+    @Column(name = "surface_construite_souhaitee")
+    private Double surfaceConstruiteSouhaitee;
+
     @Column(name = "budget_estime", precision = 15, scale = 2)
     private BigDecimal budgetEstime;
 
@@ -101,6 +115,12 @@ public class ProjetConstruction {
     @ToString.Exclude
     private ModelMaison modelMaison;
 
+    /** Maison clé en main prise comme référence (« je veux une maison comme celle-ci »). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maison_reference_id")
+    @ToString.Exclude
+    private MaisonCleEnMain maisonReference;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "societe_id")
     @ToString.Exclude
@@ -110,6 +130,15 @@ public class ProjetConstruction {
     @JoinColumn(name = "agent_id")
     @ToString.Exclude
     private AgentPromoteur agentPromoteur;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "projet", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private java.util.List<FichierProjet> fichiers = new java.util.ArrayList<>();
+
+    public boolean isModelePersonnalise() {
+        return modelMaison == null && maisonReference == null;
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -126,7 +155,7 @@ public class ProjetConstruction {
         this.dateDerniereMiseAJour = this.dateTraitement;
         this.motifRefus = null;
         if (this.progression < 100 && this.progression == 0) this.progression = 25;
-        if (this.etapeAvancement == null || this.etapeAvancement.isBlank()) this.etapeAvancement = "Projet validé";
+        this.etapeAvancement = "Projet accepté";
     }
 
     public void refuserProjet(String motif) {

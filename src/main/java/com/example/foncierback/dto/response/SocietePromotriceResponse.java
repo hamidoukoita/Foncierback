@@ -26,4 +26,6 @@ public class SocietePromotriceResponse {
     private String logoUrl;
     private String siteWeb;
     private String description;
+    private Integer delaiAttributionHeures;
+    private Boolean reservationMultiple;
 }

@@ -1,5 +1,6 @@
 package com.example.foncierback.service;
 
+import com.example.foncierback.dto.request.ReglesReservationRequest;
 import com.example.foncierback.dto.request.SocietePromotriceRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.SocietePromotrice;
@@ -18,6 +19,8 @@ public interface SocietePromotriceService {
     List<SocietePromotriceResponse> getByStatutAgrement(StatutAgrement statutAgrement);
 
     SocietePromotriceResponse update(Long id, SocietePromotriceRequest request);
+
+    SocietePromotriceResponse updateReglesReservation(Long id, ReglesReservationRequest request);
 
     void delete(Long id);
 

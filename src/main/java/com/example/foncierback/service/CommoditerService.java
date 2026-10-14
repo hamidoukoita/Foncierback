@@ -17,7 +17,7 @@ public interface CommoditerService {
     List<CommoditerResponse> getByTypeCommoditeId(Long typeCommoditeId);
 
     /** Commodités référencées par une société promotrice. */
-    List<CommoditerResponse> getBySociete(Long societeId);
+    List<CommoditerResponse> getBySocieteId(Long societeId);
 
     CommoditerResponse toResponse(Commoditer commoditer);
 

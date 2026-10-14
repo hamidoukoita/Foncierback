@@ -11,6 +11,7 @@ import com.example.foncierback.repository.LotProgrammeRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.service.ProgrammeFoncierService;
+import com.example.foncierback.service.CouvertureResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
     private final ProgrammeFoncierRepository programmeFoncierRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
     private final LotProgrammeRepository lotProgrammeRepository;
+    private final CouvertureResolver couvertureResolver;
 
     @Override
     public ProgrammeFoncierResponse create(ProgrammeFoncierRequest request) {
@@ -167,6 +169,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
         int totalLots = (int) lotProgrammeRepository.countByProgrammeFoncierId(entity.getId());
         return ProgrammeFoncierResponse.builder()
                 .id(entity.getId())
+                .imageUrl(couvertureResolver.pourProgramme(entity.getId()))
+                .nombrePanoramas(couvertureResolver.panoramasProgramme(entity.getId()))
                 .nom(entity.getNom())
                 .description(entity.getDescription())
                 .lieu(entity.getLieu())
