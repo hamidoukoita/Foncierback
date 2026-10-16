@@ -39,6 +39,9 @@ public class LotProgrammeResponse {
     private String numeroIlotLotissement;
     private Long programmeId;
     private String programmeNom;
+    private String societeNom;
+    /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
+    private String societeLogoUrl;
 
     @Builder.Default
     private List<CommoditerResponse> commodites = new ArrayList<>();

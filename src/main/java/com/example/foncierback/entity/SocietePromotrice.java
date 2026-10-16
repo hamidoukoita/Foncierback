@@ -71,14 +71,23 @@ public class SocietePromotrice {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    /** Heures laissées pour affecter un agent à une demande de réservation (null = délai par défaut). */
+    /** Durée de la réservation, en heures, comptée à partir du démarrage par l'agent (null = durée par défaut). */
     @Column(name = "delai_attribution_heures")
     private Integer delaiAttributionHeures;
 
-    /** Si vrai, un même lot ou une même parcelle peut être réservé (et confirmé) pour plusieurs acquéreurs. */
+    /** Montant payé pour réserver un lot ou une parcelle, en FCFA (null = montant par défaut). */
+    @Column(name = "prix_reservation", precision = 15, scale = 2)
+    private java.math.BigDecimal prixReservation;
+
+    /** Si vrai, un même lot ou une même parcelle peut être réservé par plusieurs acquéreurs à la fois. */
     @Builder.Default
     @Column(name = "reservation_multiple", nullable = false, columnDefinition = "boolean default false")
     private Boolean reservationMultiple = Boolean.FALSE;
+
+    /** Vrai une fois l'assistant de première connexion terminé ou passé par le responsable. */
+    @Builder.Default
+    @Column(name = "parametrage_initial_fait", nullable = false, columnDefinition = "boolean default false")
+    private Boolean parametrageInitialFait = Boolean.FALSE;
 
     // --- Cardinalités / Relations ---
 

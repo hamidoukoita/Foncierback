@@ -13,9 +13,15 @@ public interface MediaFoncierService {
 
     List<MediaFoncierResponse> getByBien(Long bienId);
 
+    List<MediaFoncierResponse> getByModele(Long modeleId);
+
     MediaFoncierResponse ajouterFichierProgramme(Long programmeId, MultipartFile fichier, String type, String titre, String description);
 
     MediaFoncierResponse ajouterFichierBien(Long bienId, MultipartFile fichier, String type, String titre, String description);
+
+    MediaFoncierResponse ajouterFichierModele(Long modeleId, MultipartFile fichier, String type, String titre, String description);
+
+    MediaFoncierResponse ajouterLienModele(Long modeleId, MediaLienRequest request);
 
     MediaFoncierResponse ajouterLienProgramme(Long programmeId, MediaLienRequest request);
 
@@ -25,6 +31,6 @@ public interface MediaFoncierService {
 
     void delete(Long id);
 
-    /** Place la photo en tête de sa galerie : elle devient la couverture de la cité ou du bien. */
+    /** Place la photo en tête de sa galerie : elle devient la couverture de la cité, du bien ou du modèle. */
     MediaFoncierResponse definirCouverture(Long id);
 }

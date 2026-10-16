@@ -8,6 +8,7 @@ import com.example.foncierback.entity.ModelMaison;
 import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.repository.ModelMaisonRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
+import com.example.foncierback.service.CouvertureResolver;
 import com.example.foncierback.service.ModelMaisonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -47,6 +49,7 @@ public class ModelMaisonServiceImpl implements ModelMaisonService {
 
     private final ModelMaisonRepository modelMaisonRepository;
     private final SocietePromotriceRepository societePromotriceRepository;
+    private final CouvertureResolver couvertureResolver;
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
@@ -199,7 +202,9 @@ public class ModelMaisonServiceImpl implements ModelMaisonService {
                 .id(entity.getId())
                 .libeller(entity.getLibeller())
                 .description(entity.getDescription())
-                .imageUrl(entity.getImageUrl())
+                // La couverture de la galerie prime sur l'image unique historique du modèle.
+                .imageUrl(Optional.ofNullable(couvertureResolver.pourModele(entity.getId())).orElse(entity.getImageUrl()))
+                .nombrePanoramas(couvertureResolver.panoramasModele(entity.getId()))
                 .planUrl(entity.getPlanUrl())
                 .surfaceTerrainMin(entity.getSurfaceTerrainMin())
                 .surfaceTerrainMax(entity.getSurfaceTerrainMax())

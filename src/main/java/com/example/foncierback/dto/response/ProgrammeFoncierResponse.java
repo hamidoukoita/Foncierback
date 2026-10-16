@@ -34,6 +34,8 @@ public class ProgrammeFoncierResponse {
     private Boolean voirieBitumee;
     private Long societeId;
     private String societeNom;
+    /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
+    private String societeLogoUrl;
     private Integer totalLots;
     private Long planMasseId;
 }

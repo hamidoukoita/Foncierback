@@ -43,12 +43,16 @@ public class NotificationDispatchService {
         notificationRepository.save(notification);
     }
 
+    /**
+     * Notifie la société, c'est-à-dire son responsable : les agents collaborateurs ne sont prévenus
+     * qu'une fois un dossier attribué (via {@link #notifyUser}).
+     */
     public void notifySociete(SocietePromotrice societe, String code, String libelle, String titre, String message) {
         if (societe == null || societe.getId() == null) return;
         List<AgentPromoteur> destinataires = agentPromoteurRepository.findBySocietePromotriceId(societe.getId());
         for (AgentPromoteur agent : destinataires) {
             StatutCompte statut = agent.getStatut();
-            if (statut == StatutCompte.SUSPENDU || statut == StatutCompte.DESACTIVE) continue;
+            if (!agent.isEstResponsableSociete() || statut == StatutCompte.SUSPENDU || statut == StatutCompte.DESACTIVE) continue;
             notifyUser(agent, code, libelle, titre, message);
         }
     }

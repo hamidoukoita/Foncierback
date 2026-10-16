@@ -179,6 +179,7 @@ public class MaisonCleEnMainServiceImpl implements MaisonCleEnMainService {
                 .nombrePanoramas(couvertureResolver.panoramasBien(m.getId()))
                 .societeId(societe != null ? societe.getId() : null)
                 .societeNom(societe != null ? societe.getNom() : null)
+                .societeLogoUrl(societe != null ? societe.getLogoUrl() : null)
                 .equipements(List.copyOf(m.getEquipements()))
                 .commodites(m.getCommodites().stream().map(this::versCommodite).toList())
                 .build();

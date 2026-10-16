@@ -36,6 +36,8 @@ public class MaisonCleEnMainResponse {
     private Long nombrePanoramas;
     private Long societeId;
     private String societeNom;
+    /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
+    private String societeLogoUrl;
 
     @Builder.Default
     private List<String> equipements = new ArrayList<>();

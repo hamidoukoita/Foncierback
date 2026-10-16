@@ -16,6 +16,8 @@ public class ModelMaisonResponse {
     private String description;
     private String imageUrl;
     private String planUrl;
+    /** Nombre de panoramas 360° de la galerie du modèle. */
+    private Long nombrePanoramas;
     private Double surfaceTerrainMin;
     private Double surfaceTerrainMax;
     private Double surfaceConstruite;

@@ -28,4 +28,6 @@ public class SocietePromotriceResponse {
     private String description;
     private Integer delaiAttributionHeures;
     private Boolean reservationMultiple;
+    private java.math.BigDecimal prixReservation;
+    private Boolean parametrageInitialFait;
 }

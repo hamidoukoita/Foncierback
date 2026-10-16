@@ -107,6 +107,14 @@ public class BienFoncierServiceImpl implements BienFoncierService {
             builder.typeBien("BIEN_FONCIER");
         }
 
+        // Société qui publie le bien (lot via sa cité), pour son logo côté acquéreur.
+        var societe = entity.societeGestionnaire();
+        if (societe != null) {
+            builder.societeId(societe.getId())
+                    .societeNom(societe.getNom())
+                    .societeLogoUrl(societe.getLogoUrl());
+        }
+
         return builder.build();
     }
 

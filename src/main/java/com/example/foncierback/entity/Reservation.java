@@ -49,8 +49,37 @@ public class Reservation {
     @Column(name = "date_traitement")
     private LocalDateTime dateTraitement;
 
+    /** Échéance du décompte : fixée quand l'agent le démarre (null avant). */
     @Column(name = "date_expiration")
     private LocalDateTime dateExpiration;
+
+    @Column(name = "date_debut_decompte")
+    private LocalDateTime dateDebutDecompte;
+
+    @Column(name = "date_conclusion")
+    private LocalDateTime dateConclusion;
+
+    // --- Paiement (simulé : aucun appel à un opérateur) ---
+
+    /** Montant payé pour réserver ; zéro pour une réservation gratuite (maison clé en main). */
+    @Column(name = "montant_reservation", precision = 15, scale = 2)
+    private java.math.BigDecimal montantReservation;
+
+    @Column(name = "moyen_paiement", length = 30)
+    private String moyenPaiement;
+
+    @Column(name = "reference_paiement", length = 40)
+    private String referencePaiement;
+
+    @Column(name = "date_paiement")
+    private LocalDateTime datePaiement;
+
+    @Builder.Default
+    @Column(name = "rembourse", nullable = false, columnDefinition = "boolean default false")
+    private Boolean rembourse = Boolean.FALSE;
+
+    @Column(name = "date_remboursement")
+    private LocalDateTime dateRemboursement;
 
 
     // --- Cardinalités / Relations ---
@@ -84,24 +113,49 @@ public class Reservation {
         }
     }
 
-    public void confirmer() {
-        this.statut = StatutReservation.CONFIRMER;
-        this.dateTraitement = LocalDateTime.now();
-        this.motifRefus = null;
-        this.motifAnnulation = null;
+    /** Réservation encore en vigueur : elle bloque le bien. */
+    public boolean estActive() {
+        return statut == StatutReservation.EN_ATTENTE || statut == StatutReservation.EN_COURS;
     }
 
-    public void refuser(String motif) {
-        this.statut = StatutReservation.REFUSER;
-        this.dateTraitement = LocalDateTime.now();
-        this.motifRefus = motif;
-        this.motifAnnulation = null;
+    /** L'agent démarre le décompte : la réservation court jusqu'à maintenant + durée. */
+    public void demarrerDecompte(int dureeHeures) {
+        LocalDateTime maintenant = LocalDateTime.now();
+        this.statut = StatutReservation.EN_COURS;
+        this.dateDebutDecompte = maintenant;
+        this.dateExpiration = maintenant.plusHours(dureeHeures);
+        this.dateTraitement = maintenant;
     }
 
-    public void annulerAutomatiquement(String motif) {
+    public void conclureVente() {
+        this.statut = StatutReservation.VENDUE;
+        this.dateConclusion = LocalDateTime.now();
+        this.dateTraitement = this.dateConclusion;
+    }
+
+    /** Échéance atteinte sans vente : le montant payé n'est pas rendu. */
+    public void expirer() {
+        this.statut = StatutReservation.EXPIREE;
+        this.dateTraitement = LocalDateTime.now();
+        this.motifAnnulation = "Délai de réservation écoulé sans vente : le montant de la réservation n'est pas remboursé.";
+    }
+
+    /** Désistement de l'acquéreur : jamais remboursé. */
+    public void annulerParAcquereur() {
         this.statut = StatutReservation.ANNULEE;
         this.dateTraitement = LocalDateTime.now();
+        this.motifAnnulation = "Annulée par l'acquéreur : le montant de la réservation n'est pas remboursé.";
+        this.rembourse = Boolean.FALSE;
+    }
+
+    /** Le bien a été vendu à un autre acquéreur : la réservation ne peut plus aboutir, elle est remboursée. */
+    public void annulerAvecRemboursement(String motif) {
+        LocalDateTime maintenant = LocalDateTime.now();
+        this.statut = StatutReservation.ANNULEE;
+        this.dateTraitement = maintenant;
         this.motifAnnulation = motif;
-        this.motifRefus = null;
+        boolean payee = montantReservation != null && montantReservation.signum() > 0;
+        this.rembourse = payee;
+        this.dateRemboursement = payee ? maintenant : null;
     }
 }

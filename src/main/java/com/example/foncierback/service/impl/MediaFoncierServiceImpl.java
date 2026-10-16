@@ -7,10 +7,12 @@ import com.example.foncierback.dto.request.MediaUpdateRequest;
 import com.example.foncierback.dto.response.MediaFoncierResponse;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.MediaFoncier;
+import com.example.foncierback.entity.ModelMaison;
 import com.example.foncierback.entity.ProgrammeFoncier;
 import com.example.foncierback.entity.enums.TypeMedia;
 import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.MediaFoncierRepository;
+import com.example.foncierback.repository.ModelMaisonRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.service.MediaFoncierService;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
     private final MediaFoncierRepository mediaRepository;
     private final ProgrammeFoncierRepository programmeRepository;
     private final BienFoncierRepository bienRepository;
+    private final ModelMaisonRepository modeleRepository;
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
@@ -65,6 +68,13 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
     @Transactional(readOnly = true)
     public List<MediaFoncierResponse> getByBien(Long bienId) {
         return mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(bienId)
+                .stream().map(this::mapToResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaFoncierResponse> getByModele(Long modeleId) {
+        return mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(modeleId)
                 .stream().map(this::mapToResponse).toList();
     }
 
@@ -88,6 +98,15 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
         return mapToResponse(mediaRepository.save(media));
     }
 
+    @Override
+    public MediaFoncierResponse ajouterFichierModele(Long modeleId, MultipartFile fichier, String type, String titre, String description) {
+        ModelMaison modele = findModele(modeleId);
+        MediaFoncier media = construireDepuisFichier(fichier, type, titre, description);
+        media.setModelMaison(modele);
+        media.setOrdre(mediaRepository.maxOrdreModele(modeleId) + 1);
+        return mapToResponse(mediaRepository.save(media));
+    }
+
     // ------------------------------------------------------------------ Liens (visite virtuelle)
 
     @Override
@@ -108,6 +127,15 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
         return mapToResponse(mediaRepository.save(media));
     }
 
+    @Override
+    public MediaFoncierResponse ajouterLienModele(Long modeleId, MediaLienRequest request) {
+        ModelMaison modele = findModele(modeleId);
+        MediaFoncier media = construireDepuisLien(request);
+        media.setModelMaison(modele);
+        media.setOrdre(mediaRepository.maxOrdreModele(modeleId) + 1);
+        return mapToResponse(mediaRepository.save(media));
+    }
+
     // ------------------------------------------------------------------ Mise à jour / suppression
 
     @Override
@@ -124,9 +152,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
         if (couverture.getType() != TypeMedia.PHOTO) {
             throw new BadRequestException("Seule une photo peut servir de couverture");
         }
-        List<MediaFoncier> galerie = couverture.getProgrammeFoncier() != null
-                ? mediaRepository.findByProgrammeFoncierIdOrderByOrdreAscIdAsc(couverture.getProgrammeFoncier().getId())
-                : mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(couverture.getBienFoncier().getId());
+        List<MediaFoncier> galerie = galerieDe(couverture);
 
         // La couverture passe en premier ; les autres médias gardent leur ordre relatif.
         int ordre = 1;
@@ -259,6 +285,22 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'id : " + id));
     }
 
+    private ModelMaison findModele(Long id) {
+        return modeleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Modèle de maison introuvable avec l'id : " + id));
+    }
+
+    /** Galerie à laquelle appartient le média : celle de son programme, de son bien ou de son modèle. */
+    private List<MediaFoncier> galerieDe(MediaFoncier media) {
+        if (media.getProgrammeFoncier() != null) {
+            return mediaRepository.findByProgrammeFoncierIdOrderByOrdreAscIdAsc(media.getProgrammeFoncier().getId());
+        }
+        if (media.getBienFoncier() != null) {
+            return mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(media.getBienFoncier().getId());
+        }
+        return mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(media.getModelMaison().getId());
+    }
+
     private MediaFoncier findMedia(Long id) {
         return mediaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Média introuvable avec l'id : " + id));
@@ -276,6 +318,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
                 .dateAjout(m.getDateAjout())
                 .programmeId(m.getProgrammeFoncier() != null ? m.getProgrammeFoncier().getId() : null)
                 .bienId(m.getBienFoncier() != null ? m.getBienFoncier().getId() : null)
+                .modeleId(m.getModelMaison() != null ? m.getModelMaison().getId() : null)
                 .build();
     }
 }

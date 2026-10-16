@@ -186,6 +186,7 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
                 .voirieBitumee(entity.getVoirieBitumee())
                 .societeId(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getId() : null)
                 .societeNom(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getNom() : null)
+                .societeLogoUrl(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getLogoUrl() : null)
                 .totalLots(totalLots)
                 .planMasseId(entity.getPlanMasse() != null ? entity.getPlanMasse().getId() : null)
                 .build();

@@ -58,6 +58,15 @@ public class SecurityUtils {
     }
 
     /**
+     * Vrai pour l'agent responsable de sa société (autorité RESPONSABLE_SOCIETE).
+     */
+    public static boolean isResponsableSociete() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "RESPONSABLE_SOCIETE".equals(a.getAuthority()));
+    }
+
+    /**
      * Récupère l'identifiant de la société promotrice de l'agent connecté.
      */
     public static Long getCurrentSocieteId() {

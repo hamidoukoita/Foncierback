@@ -54,4 +54,6 @@ public class BienFoncierResponse {
     private Boolean voieBitumee;
     private Long societeId;
     private String societeNom;
+    /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
+    private String societeLogoUrl;
 }

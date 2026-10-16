@@ -3,16 +3,16 @@ package com.example.foncierback.service;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.Reservation;
 import com.example.foncierback.entity.SocietePromotrice;
-import com.example.foncierback.entity.enums.StatutReservation;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 /**
  * Règles de réservation fixées par chaque société pour l'ensemble de ses biens :
- * - délai d'attribution : heures dont elle dispose pour affecter un agent à une demande
- *   (passé ce délai, une demande sans agent est annulée) ;
- * - réservation multiple : un même lot ou une même parcelle peut-il être réservé par plusieurs acquéreurs.
+ * - prix de la réservation : montant fixe payé par l'acquéreur pour réserver un lot ou une parcelle ;
+ * - durée de la réservation : heures pendant lesquelles le bien reste bloqué une fois le décompte
+ *   démarré par l'agent (passé ce délai sans vente, la réservation expire et le bien est libéré) ;
+ * - réservation multiple : un même bien peut-il être réservé par plusieurs acquéreurs à la fois.
  */
 @Component
 public class ReglesReservationResolver {
@@ -20,6 +20,9 @@ public class ReglesReservationResolver {
     public static final int DELAI_PAR_DEFAUT_HEURES = 72;
     public static final int DELAI_MIN_HEURES = 24;
     public static final int DELAI_MAX_HEURES = 336;
+
+    public static final BigDecimal PRIX_PAR_DEFAUT = BigDecimal.valueOf(25_000);
+    public static final long PRIX_MAX = 5_000_000;
 
     /** Société qui gère le bien (lot, parcelle ou maison clé en main). */
     public SocietePromotrice societe(BienFoncier bien) {
@@ -34,6 +37,7 @@ public class ReglesReservationResolver {
         return autoriseReservationMultiple(societe(bien));
     }
 
+    /** Durée de la réservation une fois le décompte démarré. */
     public int heures(SocietePromotrice societe) {
         return societe != null && societe.getDelaiAttributionHeures() != null
                 ? societe.getDelaiAttributionHeures()
@@ -44,24 +48,12 @@ public class ReglesReservationResolver {
         return heures(societe(reservation.getBienFoncier()));
     }
 
-    /** Date limite d'affectation d'un agent, selon le délai actuel de la société. */
-    public LocalDateTime echeance(Reservation reservation) {
-        return reservation.getDateReservation() == null
-                ? null
-                : reservation.getDateReservation().plusHours(heures(reservation));
+    public BigDecimal prix(SocietePromotrice societe) {
+        return societe != null && societe.getPrixReservation() != null ? societe.getPrixReservation() : PRIX_PAR_DEFAUT;
     }
 
-    /** Vrai pour une demande encore en attente, sans agent, dont l'échéance est atteinte. */
-    public boolean estExpiree(Reservation reservation, LocalDateTime maintenant) {
-        LocalDateTime echeance = echeance(reservation);
-        return reservation.getStatut() == StatutReservation.EN_ATTENTE
-                && reservation.getAgentPromoteur() == null
-                && echeance != null
-                && !echeance.isAfter(maintenant);
-    }
-
-    public String motifAnnulation(Reservation reservation) {
-        return "Annulation automatique : aucun agent n'a été affecté dans les "
-                + heures(reservation) + " heures suivant la demande.";
+    /** Montant à payer pour réserver ce bien ; zéro si sa réservation est gratuite. */
+    public BigDecimal prix(BienFoncier bien) {
+        return bien != null && bien.reservationPayante() ? prix(societe(bien)) : BigDecimal.ZERO;
     }
 }
