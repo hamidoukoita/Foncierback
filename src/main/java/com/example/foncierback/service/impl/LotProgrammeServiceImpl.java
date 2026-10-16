@@ -197,6 +197,8 @@ public class LotProgrammeServiceImpl implements LotProgrammeService {
                 .numeroIlotLotissement(entity.getNumeroIlotLotissement())
                 .programmeId(entity.getProgrammeFoncier() != null ? entity.getProgrammeFoncier().getId() : null)
                 .programmeNom(entity.getProgrammeFoncier() != null ? entity.getProgrammeFoncier().getNom() : null)
+                .societeNom(entity.societeGestionnaire() != null ? entity.societeGestionnaire().getNom() : null)
+                .societeLogoUrl(entity.societeGestionnaire() != null ? entity.societeGestionnaire().getLogoUrl() : null)
                 .commodites(commodites)
                 .build();
     }

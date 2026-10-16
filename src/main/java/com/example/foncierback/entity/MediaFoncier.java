@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 
 /**
  * Média (photo, panorama 360° ou lien de visite virtuelle) rattaché à un programme foncier
- * OU à un bien foncier (lot de programme, parcelle individuelle).
+ * OU à un bien foncier (lot de programme, parcelle individuelle, maison clé en main)
+ * OU à un modèle de maison du catalogue de construction.
  * PHOTO et PANORAMA_360 : fichier stocké sur disque (nomFichier).
  * VISITE_VIRTUELLE : lien externe https (lienExterne).
  */
@@ -64,6 +65,12 @@ public class MediaFoncier {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @ToString.Exclude
     private BienFoncier bienFoncier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "modele_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ToString.Exclude
+    private ModelMaison modelMaison;
 
     @PrePersist
     void avantCreation() {

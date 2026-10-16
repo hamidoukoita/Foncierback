@@ -110,6 +110,11 @@ public class BienFoncier {
         return null;
     }
 
+    /** Vrai si la réservation du bien se paie (lots et parcelles) ; les maisons clés en main sont gratuites. */
+    public boolean reservationPayante() {
+        return true;
+    }
+
     /** Code du type de bien exposé par l'API. */
     public String typeBien() {
         return "BIEN_FONCIER";

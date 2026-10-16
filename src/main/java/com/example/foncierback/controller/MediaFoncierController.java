@@ -1,9 +1,12 @@
 package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
+import com.example.foncierback.dto.request.LienPanoramaRequest;
 import com.example.foncierback.dto.request.MediaLienRequest;
 import com.example.foncierback.dto.request.MediaUpdateRequest;
+import com.example.foncierback.dto.response.LienPanoramaResponse;
 import com.example.foncierback.dto.response.MediaFoncierResponse;
+import com.example.foncierback.service.LienPanoramaService;
 import com.example.foncierback.service.MediaFoncierService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +28,7 @@ import java.util.List;
 public class MediaFoncierController {
 
     private final MediaFoncierService mediaService;
+    private final LienPanoramaService lienService;
 
     @GetMapping("/programme/{programmeId}")
     @Operation(summary = "Lister les médias d'un programme")
@@ -36,6 +40,12 @@ public class MediaFoncierController {
     @Operation(summary = "Lister les médias d'un bien (lot ou parcelle)")
     public ResponseEntity<ApiResponse<List<MediaFoncierResponse>>> getByBien(@PathVariable Long bienId) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Médias du bien", mediaService.getByBien(bienId)));
+    }
+
+    @GetMapping("/modele/{modeleId}")
+    @Operation(summary = "Lister les médias d'un modèle de maison du catalogue")
+    public ResponseEntity<ApiResponse<List<MediaFoncierResponse>>> getByModele(@PathVariable Long modeleId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Médias du modèle", mediaService.getByModele(modeleId)));
     }
 
     @PostMapping(value = "/programme/{programmeId}/fichier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -64,6 +74,19 @@ public class MediaFoncierController {
         return new ResponseEntity<>(new ApiResponse<>(true, "Média ajouté avec succès", response), HttpStatus.CREATED);
     }
 
+    @PostMapping(value = "/modele/{modeleId}/fichier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Ajouter une photo ou un panorama 360° à un modèle de maison")
+    public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterFichierModele(
+            @PathVariable Long modeleId,
+            @RequestParam("file") MultipartFile fichier,
+            @RequestParam("type") String type,
+            @RequestParam(value = "titre", required = false) String titre,
+            @RequestParam(value = "description", required = false) String description) {
+        MediaFoncierResponse response = mediaService.ajouterFichierModele(modeleId, fichier, type, titre, description);
+        return new ResponseEntity<>(new ApiResponse<>(true, "Média ajouté avec succès", response), HttpStatus.CREATED);
+    }
+
     @PostMapping("/programme/{programmeId}/lien")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
     @Operation(summary = "Ajouter une visite virtuelle (lien https) à un programme")
@@ -80,6 +103,46 @@ public class MediaFoncierController {
             @PathVariable Long bienId, @Valid @RequestBody MediaLienRequest request) {
         return new ResponseEntity<>(new ApiResponse<>(true, "Visite virtuelle ajoutée avec succès",
                 mediaService.ajouterLienBien(bienId, request)), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/modele/{modeleId}/lien")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Ajouter une visite virtuelle (lien https) à un modèle de maison")
+    public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienModele(
+            @PathVariable Long modeleId, @Valid @RequestBody MediaLienRequest request) {
+        return new ResponseEntity<>(new ApiResponse<>(true, "Visite virtuelle ajoutée avec succès",
+                mediaService.ajouterLienModele(modeleId, request)), HttpStatus.CREATED);
+    }
+
+    // ------------------------------------------------------------ Visite virtuelle (maisons clés en main)
+
+    @GetMapping("/bien/{bienId}/liens")
+    @Operation(summary = "Points de passage entre les panoramas 360° d'un bien")
+    public ResponseEntity<ApiResponse<List<LienPanoramaResponse>>> getLiens(@PathVariable Long bienId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Points de passage du bien", lienService.getByBien(bienId)));
+    }
+
+    @PostMapping("/liens")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Relier deux panoramas d'une maison clé en main (et, au choix, créer le retour)")
+    public ResponseEntity<ApiResponse<List<LienPanoramaResponse>>> creerLien(@Valid @RequestBody LienPanoramaRequest request) {
+        return new ResponseEntity<>(new ApiResponse<>(true, "Point de passage ajouté", lienService.creer(request)), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/liens/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Déplacer ou renommer un point de passage")
+    public ResponseEntity<ApiResponse<LienPanoramaResponse>> modifierLien(
+            @PathVariable Long id, @Valid @RequestBody LienPanoramaRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Point de passage mis à jour", lienService.modifier(id, request)));
+    }
+
+    @DeleteMapping("/liens/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Supprimer un point de passage")
+    public ResponseEntity<ApiResponse<Void>> supprimerLien(@PathVariable Long id) {
+        lienService.supprimer(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Point de passage supprimé", null));
     }
 
     @PutMapping("/{id}")

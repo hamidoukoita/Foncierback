@@ -41,6 +41,8 @@ public class ParcelleIndividuelleResponse {
     private Boolean voieBitumee;
     private Long societeId;
     private String societeNom;
+    /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
+    private String societeLogoUrl;
 
     @Builder.Default
     private List<CommoditerResponse> commodites = new ArrayList<>();

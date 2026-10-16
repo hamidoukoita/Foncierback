@@ -22,4 +22,5 @@ public class MediaFoncierResponse {
     private LocalDateTime dateAjout;
     private Long programmeId;
     private Long bienId;
+    private Long modeleId;
 }

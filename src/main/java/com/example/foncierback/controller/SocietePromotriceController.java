@@ -11,9 +11,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -70,6 +72,24 @@ public class SocietePromotriceController {
     ) {
         SocietePromotriceResponse response = societePromotriceService.updateReglesReservation(id, request);
         return ResponseEntity.ok(new ApiResponse<>(true, "Règles de réservation mises à jour", response));
+    }
+
+    @PostMapping(value = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#id))")
+    @Operation(summary = "Envoyer le logo de la société (JPEG, PNG ou WebP, 2 Mo maximum)")
+    public ResponseEntity<ApiResponse<SocietePromotriceResponse>> updateLogo(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile fichier
+    ) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Logo mis à jour", societePromotriceService.updateLogo(id, fichier)));
+    }
+
+    @PatchMapping("/{id}/parametrage-initial")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#id))")
+    @Operation(summary = "Terminer (ou passer) l'assistant de première connexion de la société")
+    public ResponseEntity<ApiResponse<SocietePromotriceResponse>> terminerParametrageInitial(@PathVariable Long id) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Paramétrage initial terminé",
+                societePromotriceService.terminerParametrageInitial(id)));
     }
 
     @DeleteMapping("/{id}")

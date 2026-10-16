@@ -11,9 +11,11 @@ import com.example.foncierback.entity.enums.StatutAgrement;
 import com.example.foncierback.repository.SocietePromotriceRepository;
 import com.example.foncierback.service.ReglesReservationResolver;
 import com.example.foncierback.service.SocietePromotriceService;
+import com.example.foncierback.service.StockageImage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,7 +24,12 @@ import java.util.List;
 @Transactional
 public class SocietePromotriceServiceImpl implements SocietePromotriceService {
 
+    private static final String DOSSIER_LOGOS = "logos";
+    private static final String PREFIXE_URL_LOGOS = "/uploads/logos/";
+    private static final long TAILLE_MAX_LOGO_OCTETS = 2L * 1024 * 1024;
+
     private final SocietePromotriceRepository societePromotriceRepository;
+    private final StockageImage stockageImage;
 
     @Override
     public SocietePromotriceResponse create(SocietePromotriceRequest request) {
@@ -140,6 +147,27 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
         SocietePromotrice existing = findEntityById(id);
         existing.setDelaiAttributionHeures(request.getDelaiAttributionHeures());
         existing.setReservationMultiple(request.getReservationMultiple());
+        existing.setPrixReservation(request.getPrixReservation());
+        return mapToResponse(societePromotriceRepository.save(existing));
+    }
+
+    @Override
+    public SocietePromotriceResponse updateLogo(Long id, MultipartFile fichier) {
+        SocietePromotrice existing = findEntityById(id);
+        String nomFichier = stockageImage.enregistrer(fichier, DOSSIER_LOGOS, TAILLE_MAX_LOGO_OCTETS);
+        String ancien = existing.getLogoUrl();
+        existing.setLogoUrl(PREFIXE_URL_LOGOS + nomFichier);
+        SocietePromotriceResponse response = mapToResponse(societePromotriceRepository.save(existing));
+        if (ancien != null && ancien.startsWith(PREFIXE_URL_LOGOS)) {
+            stockageImage.supprimer(DOSSIER_LOGOS, ancien.substring(PREFIXE_URL_LOGOS.length()));
+        }
+        return response;
+    }
+
+    @Override
+    public SocietePromotriceResponse terminerParametrageInitial(Long id) {
+        SocietePromotrice existing = findEntityById(id);
+        existing.setParametrageInitialFait(Boolean.TRUE);
         return mapToResponse(societePromotriceRepository.save(existing));
     }
 
@@ -174,6 +202,10 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
                         ? entity.getDelaiAttributionHeures()
                         : ReglesReservationResolver.DELAI_PAR_DEFAUT_HEURES)
                 .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
+                .prixReservation(entity.getPrixReservation() != null
+                        ? entity.getPrixReservation()
+                        : ReglesReservationResolver.PRIX_PAR_DEFAUT)
+                .parametrageInitialFait(Boolean.TRUE.equals(entity.getParametrageInitialFait()))
                 .build();
     }
 }

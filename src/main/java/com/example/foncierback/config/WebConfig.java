@@ -22,6 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
         Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
         register(registry, root.resolve("medias"), "/uploads/medias/**");
         register(registry, root.resolve("modeles-maison"), "/uploads/modeles-maison/**");
+        register(registry, root.resolve("logos"), "/uploads/logos/**");
     }
 
     private void register(ResourceHandlerRegistry registry, Path directory, String pattern) {

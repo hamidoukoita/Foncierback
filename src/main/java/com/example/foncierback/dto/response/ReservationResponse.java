@@ -36,4 +36,18 @@ public class ReservationResponse {
     private String agentNom;
     /** LOT_PROGRAMME, PARCELLE_INDIVIDUELLE ou MAISON_CLE_EN_MAIN. */
     private String typeBien;
+
+    /** Décompte démarré par l'agent ; l'échéance est dateExpiration. */
+    private LocalDateTime dateDebutDecompte;
+    private LocalDateTime dateConclusion;
+    /** Durée de réservation de la société, en heures. */
+    private Integer dureeReservationHeures;
+
+    // --- Paiement simulé ---
+    private java.math.BigDecimal montantReservation;
+    private String moyenPaiement;
+    private String referencePaiement;
+    private LocalDateTime datePaiement;
+    private Boolean rembourse;
+    private LocalDateTime dateRemboursement;
 }

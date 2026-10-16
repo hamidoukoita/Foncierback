@@ -3,7 +3,6 @@ package com.example.foncierback.controller;
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.ReservationRequest;
 import com.example.foncierback.dto.response.ReservationResponse;
-import com.example.foncierback.entity.enums.StatutReservation;
 import com.example.foncierback.service.ReservationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +29,14 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> create(@Valid @RequestBody ReservationRequest request) {
         ReservationResponse response = reservationService.create(request);
         return new ResponseEntity<>(new ApiResponse<>(true, "Réservation créée avec succès", response), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/conditions/{bienId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Montant, durée et disponibilité d'un bien avant de le réserver")
+    public ResponseEntity<ApiResponse<com.example.foncierback.dto.response.ConditionsReservationResponse>> conditions(
+            @PathVariable Long bienId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Conditions de réservation", reservationService.conditions(bienId)));
     }
 
     @GetMapping("/{id}")
@@ -110,34 +117,27 @@ public class ReservationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Agent attribué à la réservation", response));
     }
 
-    @PatchMapping("/{id}/confirmer")
+    @PatchMapping("/{id}/demarrer")
     @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-    @Operation(summary = "Confirmer une réservation")
-    public ResponseEntity<ApiResponse<ReservationResponse>> confirmer(@PathVariable Long id) {
-        ReservationResponse response = reservationService.confirmer(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation confirmée avec succès", response));
+    @Operation(summary = "Démarrer le décompte de la réservation (agent chargé du dossier)")
+    public ResponseEntity<ApiResponse<ReservationResponse>> demarrer(@PathVariable Long id) {
+        ReservationResponse response = reservationService.demarrerDecompte(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Décompte de la réservation démarré", response));
     }
 
-    @PatchMapping("/{id}/refuser")
+    @PatchMapping("/{id}/vendre")
     @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-    @Operation(summary = "Refuser une réservation avec motif")
-    public ResponseEntity<ApiResponse<ReservationResponse>> refuser(
-            @PathVariable Long id,
-            @RequestParam String motif
-    ) {
-        ReservationResponse response = reservationService.refuser(id, motif);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation refusée", response));
+    @Operation(summary = "Conclure la vente : le bien passe vendu, les autres réservations sont remboursées")
+    public ResponseEntity<ApiResponse<ReservationResponse>> vendre(@PathVariable Long id) {
+        ReservationResponse response = reservationService.conclureVente(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Vente conclue", response));
     }
 
-    @PatchMapping("/{id}/statut")
-    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-    @Operation(summary = "Changer le statut d'une réservation")
-    public ResponseEntity<ApiResponse<ReservationResponse>> changerStatut(
-            @PathVariable Long id,
-            @RequestParam StatutReservation statut,
-            @RequestParam(required = false) String motifRefus
-    ) {
-        ReservationResponse response = reservationService.changerStatut(id, statut, motifRefus);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Statut de réservation mis à jour", response));
+    @PatchMapping("/{id}/annuler")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
+    @Operation(summary = "Annuler sa réservation (acquéreur) : le montant payé n'est pas remboursé")
+    public ResponseEntity<ApiResponse<ReservationResponse>> annuler(@PathVariable Long id) {
+        ReservationResponse response = reservationService.annulerParAcquereur(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation annulée", response));
     }
 }

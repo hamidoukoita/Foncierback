@@ -216,6 +216,7 @@ public class ParcelleIndividuelleServiceImpl implements ParcelleIndividuelleServ
                 .voieBitumee(entity.getVoieBitumee())
                 .societeId(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getId() : null)
                 .societeNom(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getNom() : null)
+                .societeLogoUrl(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getLogoUrl() : null)
                 .commodites(commodites)
                 .build();
     }
