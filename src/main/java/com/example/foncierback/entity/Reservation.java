@@ -61,7 +61,7 @@ public class Reservation {
 
     // --- Paiement (simulé : aucun appel à un opérateur) ---
 
-    /** Montant payé pour réserver ; zéro pour une réservation gratuite (maison clé en main). */
+    /** Montant payé pour réserver (prix fixé par la société ; zéro si elle a choisi la gratuité). */
     @Column(name = "montant_reservation", precision = 15, scale = 2)
     private java.math.BigDecimal montantReservation;
 

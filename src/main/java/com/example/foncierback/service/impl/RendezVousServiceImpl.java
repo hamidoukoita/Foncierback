@@ -19,6 +19,7 @@ import com.example.foncierback.repository.RendezVousRepository;
 import com.example.foncierback.service.RendezVousService;
 import com.example.foncierback.config.security.SecurityUtils;
 import org.springframework.security.access.AccessDeniedException;
+import com.example.foncierback.service.DisponibiliteBien;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     /** Les fronts ne connaissent que EN_ATTENTE / ACCEPTER / REFUSER : l'annulation est un refus motivé. */
     static final String MOTIF_ANNULATION_ACQUEREUR = "Annulé par l'acquéreur";
 
+    private final DisponibiliteBien disponibilite;
     private final RendezVousRepository rendezVousRepository;
     private final AcquereurRepository acquereurRepository;
     private final AgentPromoteurRepository agentPromoteurRepository;
@@ -42,10 +44,12 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     @Override
     public RendezVousResponse create(RendezVousRequest request) {
+        // Un acquéreur prend toujours rendez-vous pour lui-même.
+        Long acquereurId = SecurityUtils.isAcquereur() ? SecurityUtils.getCurrentUserId() : request.getAcquereurId();
         Acquereur acquereur = null;
-        if (request.getAcquereurId() != null) {
-            acquereur = acquereurRepository.findById(request.getAcquereurId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Acquéreur introuvable avec l'identifiant : " + request.getAcquereurId()));
+        if (acquereurId != null) {
+            acquereur = acquereurRepository.findById(acquereurId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Acquéreur introuvable avec l'identifiant : " + acquereurId));
         }
 
         AgentPromoteur agent = null;
@@ -58,6 +62,14 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (request.getBienId() != null) {
             bien = bienFoncierRepository.findById(request.getBienId())
                     .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + request.getBienId()));
+        }
+
+        // Bien vendu, indisponible ou complet, ou rendez-vous déjà prévu : pas de nouvelle demande de visite.
+        if (bien != null) {
+            String motif = disponibilite.motifVisiteImpossible(bien, acquereur != null ? acquereur.getId() : null);
+            if (motif != null) {
+                throw new BadRequestException(motif);
+            }
         }
 
         Creneau creneau = null;

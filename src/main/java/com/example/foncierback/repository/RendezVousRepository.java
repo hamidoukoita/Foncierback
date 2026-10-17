@@ -17,6 +17,10 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long>, J
 
     List<RendezVous> findByAcquereurId(Long acquereurId);
 
+    /** Prochain rendez-vous encore valable d'un acquéreur pour un bien (demandé ou accepté, à venir). */
+    java.util.Optional<RendezVous> findFirstByAcquereurIdAndBienFoncierIdAndStatutInAndDateRendezVousAfterOrderByDateRendezVousAsc(
+            Long acquereurId, Long bienId, java.util.Collection<StatutRendezVous> statuts, LocalDateTime apres);
+
     List<RendezVous> findByAgentPromoteurId(Long agentId);
 
     List<RendezVous> findByBienFoncierId(Long bienId);

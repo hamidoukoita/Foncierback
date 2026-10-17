@@ -18,6 +18,7 @@ import com.example.foncierback.repository.AcquereurRepository;
 import com.example.foncierback.repository.AgentPromoteurRepository;
 import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.ReservationRepository;
+import com.example.foncierback.service.DisponibiliteBien;
 import com.example.foncierback.service.ReglesReservationResolver;
 import com.example.foncierback.service.ReservationService;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +46,6 @@ import java.util.UUID;
 @Transactional
 public class ReservationServiceImpl implements ReservationService {
 
-    private static final List<StatutReservation> STATUTS_ACTIFS =
-            List.of(StatutReservation.EN_ATTENTE, StatutReservation.EN_COURS);
     private static final String MOYEN_ORANGE_MONEY = "ORANGE_MONEY";
     private static final String ALPHABET_REFERENCE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final DateTimeFormatter FORMAT_REFERENCE = DateTimeFormatter.ofPattern("yyMMdd");
@@ -61,6 +60,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final AgentPromoteurRepository agentPromoteurRepository;
     private final ReglesReservationResolver reglesResolver;
     private final NotificationDispatchService notifications;
+    private final DisponibiliteBien disponibilite;
 
     // ------------------------------------------------------------------ Création et paiement
 
@@ -70,10 +70,12 @@ public class ReservationServiceImpl implements ReservationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + request.getBienId()));
         Acquereur acquereur = resoudreAcquereur(request.getAcquereurId());
 
-        verifierReservable(bien);
-        if (acquereur != null && reservationRepository.findByAcquereurId(acquereur.getId()).stream()
-                .anyMatch(r -> r.estActive() && r.getBienFoncier() != null && Objects.equals(r.getBienFoncier().getId(), bien.getId()))) {
+        if (acquereur != null && disponibilite.aDejaReserve(bien, acquereur.getId())) {
             throw new BadRequestException("Vous avez déjà une réservation en cours sur ce bien.");
+        }
+        String motif = disponibilite.motifReservationImpossible(bien);
+        if (motif != null) {
+            throw new BadRequestException(motif);
         }
 
         LocalDateTime maintenant = LocalDateTime.now();
@@ -121,7 +123,12 @@ public class ReservationServiceImpl implements ReservationService {
         BienFoncier bien = bienFoncierRepository.findById(bienId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'identifiant : " + bienId));
         BigDecimal montant = reglesResolver.prix(bien);
-        String motif = motifNonReservable(bien);
+        Long acquereurId = SecurityUtils.isAcquereur() ? SecurityUtils.getCurrentUserId() : null;
+        boolean dejaReserve = disponibilite.aDejaReserve(bien, acquereurId);
+        String motif = dejaReserve
+                ? "Vous avez déjà une réservation en cours sur ce bien."
+                : disponibilite.motifReservationImpossible(bien);
+        String motifVisite = disponibilite.motifVisiteImpossible(bien, acquereurId);
         SocietePromotrice societe = reglesResolver.societe(bien);
         return ConditionsReservationResponse.builder()
                 .bienId(bien.getId())
@@ -129,29 +136,16 @@ public class ReservationServiceImpl implements ReservationService {
                 .payante(montant.signum() > 0)
                 .dureeHeures(reglesResolver.heures(societe))
                 .reservationMultiple(reglesResolver.autoriseReservationMultiple(societe))
+                .reservationsMax(reglesResolver.reservationsMax(societe))
+                .reservationsEnCours(disponibilite.reservationsEnCours(bien))
+                .dejaReserveParMoi(dejaReserve)
                 .reservable(motif == null)
                 .motifIndisponibilite(motif)
+                .visitePossible(motifVisite == null)
+                .motifVisiteImpossible(motifVisite)
+                .vendu(bien.getStatut() == StatutParcelle.VENDUE)
                 .societeNom(societe != null ? societe.getNom() : null)
                 .build();
-    }
-
-    /** Disponible, ou déjà réservé quand la société autorise plusieurs réservations. */
-    private void verifierReservable(BienFoncier bien) {
-        String motif = motifNonReservable(bien);
-        if (motif != null) {
-            throw new BadRequestException(motif);
-        }
-    }
-
-    private String motifNonReservable(BienFoncier bien) {
-        StatutParcelle statut = bien.getStatut();
-        if (statut == StatutParcelle.DISPONIBLE) return null;
-        if (statut == StatutParcelle.RESERVER) {
-            return reglesResolver.autoriseReservationMultiple(bien)
-                    ? null
-                    : "Ce bien est déjà réservé et n'accepte qu'une réservation à la fois.";
-        }
-        return "Ce bien n'est pas disponible à la réservation.";
     }
 
     private String numeroDossierUnique(String demande) {
@@ -207,13 +201,23 @@ public class ReservationServiceImpl implements ReservationService {
         notifications.notifyUser(agent, TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation à suivre",
                 "Vous suivez la réservation " + saved.getNumeroDossier() + " (" + designation(saved)
                         + "). Démarrez le décompte quand vous prenez contact avec l'acquéreur.");
+        // L'acquéreur sait qui le suivra et comment le joindre.
+        String nomAgent = (agent.getPrenom() + " " + agent.getNom()).trim();
+        notifications.notifyUser(saved.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Votre dossier est confirmé",
+                "Votre réservation " + saved.getNumeroDossier() + " (" + designation(saved) + ") est confiée à "
+                        + nomAgent + (agent.getTelephone() != null ? ", joignable au " + agent.getTelephone() : "")
+                        + ". Votre agent vous contactera pour la suite.");
         return mapToResponse(saved);
     }
 
     @Override
     public ReservationResponse demarrerDecompte(Long id) {
         Reservation reservation = findEntityById(id);
-        verifierSuiviAutorise(reservation);
+        // C'est l'agent chargé du dossier qui décide du moment où le délai commence.
+        if (!SecurityUtils.isAdmin() && (reservation.getAgentPromoteur() == null
+                || !Objects.equals(reservation.getAgentPromoteur().getId(), SecurityUtils.getCurrentUserId()))) {
+            throw new AccessDeniedException("Seul l'agent chargé du dossier peut démarrer le décompte.");
+        }
         if (reservation.getStatut() != StatutReservation.EN_ATTENTE) {
             throw new BadRequestException("Le décompte ne peut être démarré que sur une réservation en attente.");
         }
@@ -247,7 +251,7 @@ public class ReservationServiceImpl implements ReservationService {
         bienFoncierRepository.save(bien);
 
         // Les autres réservations du bien ne peuvent plus aboutir : elles sont remboursées.
-        List<Reservation> autres = reservationRepository.findByBienFoncierIdAndStatutInAndIdNot(bien.getId(), STATUTS_ACTIFS, saved.getId());
+        List<Reservation> autres = reservationRepository.findByBienFoncierIdAndStatutInAndIdNot(bien.getId(), DisponibiliteBien.STATUTS_ACTIFS, saved.getId());
         for (Reservation autre : autres) {
             autre.annulerAvecRemboursement("Le bien a été vendu à un autre acquéreur : votre réservation vous est remboursée.");
             notifications.notifyUser(autre.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation remboursée",
@@ -331,7 +335,7 @@ public class ReservationServiceImpl implements ReservationService {
     /** Le bien redevient disponible quand plus aucune réservation ne le bloque. */
     private void libererBienSiPlusReserve(BienFoncier bien) {
         if (bien != null && bien.getStatut() == StatutParcelle.RESERVER
-                && !reservationRepository.existsByBienFoncierIdAndStatutIn(bien.getId(), STATUTS_ACTIFS)) {
+                && !reservationRepository.existsByBienFoncierIdAndStatutIn(bien.getId(), DisponibiliteBien.STATUTS_ACTIFS)) {
             bien.setStatut(StatutParcelle.DISPONIBLE);
             bienFoncierRepository.save(bien);
         }
@@ -454,6 +458,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .acquereurNom(acquereur != null ? (acquereur.getPrenom() + " " + acquereur.getNom()).trim() : null)
                 .acquereurTelephone(acquereur != null ? acquereur.getTelephone() : null)
                 .agentNom(agent != null ? (agent.getPrenom() + " " + agent.getNom()).trim() : null)
+                .agentTelephone(agent != null ? agent.getTelephone() : null)
                 .montantReservation(entity.getMontantReservation())
                 .moyenPaiement(entity.getMoyenPaiement())
                 .referencePaiement(entity.getReferencePaiement())

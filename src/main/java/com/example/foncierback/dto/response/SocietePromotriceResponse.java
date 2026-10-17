@@ -28,6 +28,8 @@ public class SocietePromotriceResponse {
     private String description;
     private Integer delaiAttributionHeures;
     private Boolean reservationMultiple;
+    /** Nombre maximal de réservations en cours sur un même bien. */
+    private Integer reservationsMax;
     private java.math.BigDecimal prixReservation;
     private Boolean parametrageInitialFait;
 }

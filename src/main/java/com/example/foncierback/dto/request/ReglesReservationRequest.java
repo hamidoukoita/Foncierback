@@ -25,12 +25,15 @@ public class ReglesReservationRequest {
     @Max(value = ReglesReservationResolver.DELAI_MAX_HEURES, message = "La durée de réservation ne peut pas dépasser 14 jours")
     private Integer delaiAttributionHeures;
 
-    /** Montant fixe payé pour réserver un lot ou une parcelle (FCFA). */
+    /** Montant fixe payé pour réserver un lot, une parcelle ou une maison clé en main (FCFA). */
     @NotNull(message = "Le prix de la réservation est obligatoire")
     @PositiveOrZero(message = "Le prix de la réservation ne peut pas être négatif")
     @DecimalMax(value = "5000000", message = "Le prix de la réservation ne peut pas dépasser 5 000 000 FCFA")
     private BigDecimal prixReservation;
 
-    @NotNull(message = "Indiquez si un bien peut être réservé plusieurs fois")
-    private Boolean reservationMultiple;
+    /** Nombre maximal de réservations en cours sur un même bien (1 = réservation unique). */
+    @NotNull(message = "Indiquez combien de réservations un même bien peut recevoir")
+    @Min(value = 1, message = "Un bien doit accepter au moins une réservation")
+    @Max(value = ReglesReservationResolver.RESERVATIONS_MAX_LIMITE, message = "Un bien ne peut pas recevoir plus de 20 réservations en cours")
+    private Integer reservationsMax;
 }
