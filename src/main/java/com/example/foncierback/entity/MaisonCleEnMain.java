@@ -87,8 +87,4 @@ public class MaisonCleEnMain extends BienFoncier {
         return "MAISON_CLE_EN_MAIN";
     }
 
-    @Override
-    public boolean reservationPayante() {
-        return false;
-    }
 }

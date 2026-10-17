@@ -30,6 +30,7 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
 
     private final SocietePromotriceRepository societePromotriceRepository;
     private final StockageImage stockageImage;
+    private final ReglesReservationResolver reglesResolver;
 
     @Override
     public SocietePromotriceResponse create(SocietePromotriceRequest request) {
@@ -146,7 +147,8 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
     public SocietePromotriceResponse updateReglesReservation(Long id, ReglesReservationRequest request) {
         SocietePromotrice existing = findEntityById(id);
         existing.setDelaiAttributionHeures(request.getDelaiAttributionHeures());
-        existing.setReservationMultiple(request.getReservationMultiple());
+        existing.setReservationsMaxParBien(request.getReservationsMax());
+        existing.setReservationMultiple(request.getReservationsMax() > 1);
         existing.setPrixReservation(request.getPrixReservation());
         return mapToResponse(societePromotriceRepository.save(existing));
     }
@@ -201,7 +203,8 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
                 .delaiAttributionHeures(entity.getDelaiAttributionHeures() != null
                         ? entity.getDelaiAttributionHeures()
                         : ReglesReservationResolver.DELAI_PAR_DEFAUT_HEURES)
-                .reservationMultiple(Boolean.TRUE.equals(entity.getReservationMultiple()))
+                .reservationMultiple(reglesResolver.autoriseReservationMultiple(entity))
+                .reservationsMax(reglesResolver.reservationsMax(entity))
                 .prixReservation(entity.getPrixReservation() != null
                         ? entity.getPrixReservation()
                         : ReglesReservationResolver.PRIX_PAR_DEFAUT)

@@ -79,7 +79,11 @@ public class SocietePromotrice {
     @Column(name = "prix_reservation", precision = 15, scale = 2)
     private java.math.BigDecimal prixReservation;
 
-    /** Si vrai, un même lot ou une même parcelle peut être réservé par plusieurs acquéreurs à la fois. */
+    /** Nombre maximal de réservations en cours sur un même bien (1 = réservation unique ; null = règle historique). */
+    @Column(name = "reservations_max_par_bien")
+    private Integer reservationsMaxParBien;
+
+    /** Historique : remplacé par {@link #reservationsMaxParBien}, tenu à jour (vrai si plus d'une réservation). */
     @Builder.Default
     @Column(name = "reservation_multiple", nullable = false, columnDefinition = "boolean default false")
     private Boolean reservationMultiple = Boolean.FALSE;

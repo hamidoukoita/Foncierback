@@ -9,10 +9,10 @@ import java.math.BigDecimal;
 
 /**
  * Règles de réservation fixées par chaque société pour l'ensemble de ses biens :
- * - prix de la réservation : montant fixe payé par l'acquéreur pour réserver un lot ou une parcelle ;
+ * - prix de la réservation : montant fixe payé par l'acquéreur pour réserver l'un de ses biens ;
  * - durée de la réservation : heures pendant lesquelles le bien reste bloqué une fois le décompte
  *   démarré par l'agent (passé ce délai sans vente, la réservation expire et le bien est libéré) ;
- * - réservation multiple : un même bien peut-il être réservé par plusieurs acquéreurs à la fois.
+ * - nombre maximal de réservations en cours sur un même bien (1 = réservation unique).
  */
 @Component
 public class ReglesReservationResolver {
@@ -24,13 +24,28 @@ public class ReglesReservationResolver {
     public static final BigDecimal PRIX_PAR_DEFAUT = BigDecimal.valueOf(25_000);
     public static final long PRIX_MAX = 5_000_000;
 
+    public static final int RESERVATIONS_MAX_LIMITE = 20;
+    /** Plafond appliqué aux sociétés passées en « réservation multiple » avant le choix d'un nombre. */
+    private static final int RESERVATIONS_MAX_HISTORIQUE = 3;
+
     /** Société qui gère le bien (lot, parcelle ou maison clé en main). */
     public SocietePromotrice societe(BienFoncier bien) {
         return bien != null ? bien.societeGestionnaire() : null;
     }
 
+    /** Nombre maximal de réservations en cours sur un même bien de la société. */
+    public int reservationsMax(SocietePromotrice societe) {
+        if (societe == null) return 1;
+        if (societe.getReservationsMaxParBien() != null) return Math.max(1, societe.getReservationsMaxParBien());
+        return Boolean.TRUE.equals(societe.getReservationMultiple()) ? RESERVATIONS_MAX_HISTORIQUE : 1;
+    }
+
+    public int reservationsMax(BienFoncier bien) {
+        return reservationsMax(societe(bien));
+    }
+
     public boolean autoriseReservationMultiple(SocietePromotrice societe) {
-        return societe != null && Boolean.TRUE.equals(societe.getReservationMultiple());
+        return reservationsMax(societe) > 1;
     }
 
     public boolean autoriseReservationMultiple(BienFoncier bien) {
@@ -52,8 +67,8 @@ public class ReglesReservationResolver {
         return societe != null && societe.getPrixReservation() != null ? societe.getPrixReservation() : PRIX_PAR_DEFAUT;
     }
 
-    /** Montant à payer pour réserver ce bien ; zéro si sa réservation est gratuite. */
+    /** Montant à payer pour réserver ce bien (lot, parcelle ou maison clé en main) : le prix de sa société. */
     public BigDecimal prix(BienFoncier bien) {
-        return bien != null && bien.reservationPayante() ? prix(societe(bien)) : BigDecimal.ZERO;
+        return prix(societe(bien));
     }
 }
