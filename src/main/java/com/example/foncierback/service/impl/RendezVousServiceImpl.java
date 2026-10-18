@@ -236,6 +236,9 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (agent.getStatut() != null && agent.getStatut() != StatutCompte.ACTIF) {
             throw new BadRequestException("Cet agent n'est pas actif et ne peut pas recevoir de rendez-vous.");
         }
+        if (agent.isEstResponsableSociete()) {
+            throw new BadRequestException("Le responsable ne peut pas s'attribuer un rendez-vous : confiez-le à un agent collaborateur.");
+        }
 
         existing.setAgentPromoteur(agent);
         // Attribution = confirmation du RDV

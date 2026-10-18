@@ -184,6 +184,9 @@ public class ReservationServiceImpl implements ReservationService {
         if (agent.getStatut() != StatutCompte.ACTIF) {
             throw new BadRequestException("Cet agent n'est pas actif et ne peut pas recevoir de réservation.");
         }
+        if (agent.isEstResponsableSociete()) {
+            throw new BadRequestException("Le responsable ne peut pas s'attribuer un dossier : confiez-le à un agent collaborateur.");
+        }
 
         Long societeBienId = societeId(reservation.getBienFoncier());
         Long societeAgentId = agent.getSocietePromotrice() != null ? agent.getSocietePromotrice().getId() : null;
