@@ -55,6 +55,11 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Compte non actif (statut: " + user.getStatut() + ")");
         }
 
+        return sessionPour(user);
+    }
+
+    @Override
+    public AuthResponse sessionPour(Utilisateur user) {
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String token = jwtService.generateToken(userDetails);
 

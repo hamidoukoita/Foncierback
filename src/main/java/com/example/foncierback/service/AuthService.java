@@ -11,6 +11,9 @@ public interface AuthService {
 
     AuthResponse login(LoginRequest request);
 
+    /** Session (jeton et profil) d'un utilisateur déjà authentifié, par exemple après un changement de numéro. */
+    AuthResponse sessionPour(com.example.foncierback.entity.Utilisateur user);
+
     AuthResponse registerAcquereur(AcquereurRequest request);
 
     SocietePromotriceResponse registerSociete(RegisterSocieteRequest request);
