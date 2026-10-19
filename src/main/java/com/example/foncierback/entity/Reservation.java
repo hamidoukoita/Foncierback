@@ -1,6 +1,7 @@
 package com.example.foncierback.entity;
 
 import com.example.foncierback.entity.enums.StatutReservation;
+import com.example.foncierback.entity.enums.SuiteVente;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -81,6 +82,31 @@ public class Reservation {
     @Column(name = "date_remboursement")
     private LocalDateTime dateRemboursement;
 
+    // --- Bien vendu à un autre acquéreur : remboursement ou report sur un autre bien ---
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "suite_vente", columnDefinition = "VARCHAR(30)")
+    private SuiteVente suiteVente;
+
+    /** Passé cette date sans choix de l'acquéreur, le remboursement est effectué d'office. */
+    @Column(name = "date_limite_choix")
+    private LocalDateTime dateLimiteChoix;
+
+    @Column(name = "date_remboursement_prevue")
+    private LocalDateTime dateRemboursementPrevue;
+
+    /** Réservation créée sur un autre bien avec le montant de celle-ci. */
+    @Column(name = "reservation_remplacante_id")
+    private Long reservationRemplacanteId;
+
+    /** Réservation d'origine dont le montant a été reporté sur celle-ci. */
+    @Column(name = "reservation_origine_id")
+    private Long reservationOrigineId;
+
+    /** Attribution du dossier à l'agent (mesure de sa réactivité). */
+    @Column(name = "date_attribution")
+    private LocalDateTime dateAttribution;
+
 
     // --- Cardinalités / Relations ---
 
@@ -148,14 +174,42 @@ public class Reservation {
         this.rembourse = Boolean.FALSE;
     }
 
-    /** Le bien a été vendu à un autre acquéreur : la réservation ne peut plus aboutir, elle est remboursée. */
-    public void annulerAvecRemboursement(String motif) {
+    /**
+     * Le bien a été vendu à un autre acquéreur : la réservation ne peut plus aboutir.
+     * Payée, elle attend le choix de l'acquéreur (remboursement ou report) jusqu'à la date limite.
+     */
+    public void annulerCarVenduAUnAutre(int delaiChoixHeures) {
         LocalDateTime maintenant = LocalDateTime.now();
         this.statut = StatutReservation.ANNULEE;
         this.dateTraitement = maintenant;
-        this.motifAnnulation = motif;
-        boolean payee = montantReservation != null && montantReservation.signum() > 0;
-        this.rembourse = payee;
-        this.dateRemboursement = payee ? maintenant : null;
+        this.motifAnnulation = "Le bien a été vendu à un autre acquéreur.";
+        this.rembourse = Boolean.FALSE;
+        if (estPayee()) {
+            this.suiteVente = SuiteVente.A_CHOISIR;
+            this.dateLimiteChoix = maintenant.plusHours(delaiChoixHeures);
+        }
+    }
+
+    public void demanderRemboursement(int delaiHeures) {
+        this.suiteVente = SuiteVente.REMBOURSEMENT_EN_COURS;
+        this.dateRemboursementPrevue = LocalDateTime.now().plusHours(delaiHeures);
+    }
+
+    /** Versement (simulé) du remboursement. */
+    public void rembourser() {
+        LocalDateTime maintenant = LocalDateTime.now();
+        this.suiteVente = SuiteVente.REMBOURSEE;
+        this.rembourse = Boolean.TRUE;
+        this.dateRemboursement = maintenant;
+        if (this.dateRemboursementPrevue == null) this.dateRemboursementPrevue = maintenant;
+    }
+
+    public void remplacerPar(Long reservationId) {
+        this.suiteVente = SuiteVente.REMPLACEE;
+        this.reservationRemplacanteId = reservationId;
+    }
+
+    public boolean estPayee() {
+        return montantReservation != null && montantReservation.signum() > 0;
     }
 }

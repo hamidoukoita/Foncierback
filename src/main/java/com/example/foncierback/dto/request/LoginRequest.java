@@ -11,4 +11,9 @@ public class LoginRequest {
 
     @NotBlank(message = "Le mot de passe est obligatoire")
     private String motDePasse;
+
+    /** Le numéro est comparé sans espaces ni indicatif. */
+    public void setTelephone(String valeur) {
+        this.telephone = com.example.foncierback.common.validation.Formats.telephone(valeur);
+    }
 }

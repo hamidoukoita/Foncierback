@@ -38,6 +38,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    /** Filet de sécurité : une donnée déjà utilisée (contrainte d'unicité) ne remonte jamais en erreur SQL brute. */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+        String detail = String.valueOf(ex.getMostSpecificCause().getMessage());
+        log.warn("DataIntegrityViolationException: {}", detail);
+        String message = detail.contains("Duplicate entry")
+                ? "Une des informations saisies (e-mail, téléphone, NIF, agrément ou nom) est déjà utilisée par un autre compte."
+                : "Les données envoyées ne respectent pas les contraintes de la base.";
+        return buildResponse(HttpStatus.CONFLICT, message);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         String errors = ex.getBindingResult().getFieldErrors().stream()

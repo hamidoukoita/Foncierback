@@ -10,8 +10,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,12 +40,25 @@ public class AuthController {
         );
     }
 
-    @PostMapping("/register-societe")
+    @PostMapping(value = "/register-societe", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Inscription publique d'une société promotrice et création du compte responsable")
     public ResponseEntity<ApiResponse<com.example.foncierback.dto.response.SocietePromotriceResponse>> registerSociete(
             @Valid @RequestBody com.example.foncierback.dto.request.RegisterSocieteRequest request
     ) {
         com.example.foncierback.dto.response.SocietePromotriceResponse response = authService.registerSociete(request);
+        return new ResponseEntity<>(
+                new ApiResponse<>(true, "Dossier d'agrément de la société promotrice enregistré avec succès", response),
+                HttpStatus.CREATED
+        );
+    }
+
+    @PostMapping(value = "/register-societe", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Inscription publique d'une société promotrice avec son dossier d'agrément consolidé (PDF)")
+    public ResponseEntity<ApiResponse<com.example.foncierback.dto.response.SocietePromotriceResponse>> registerSocieteAvecDossier(
+            @Valid @RequestPart("societe") com.example.foncierback.dto.request.RegisterSocieteRequest request,
+            @RequestPart(value = "dossier", required = false) MultipartFile dossier
+    ) {
+        com.example.foncierback.dto.response.SocietePromotriceResponse response = authService.registerSociete(request, dossier);
         return new ResponseEntity<>(
                 new ApiResponse<>(true, "Dossier d'agrément de la société promotrice enregistré avec succès", response),
                 HttpStatus.CREATED

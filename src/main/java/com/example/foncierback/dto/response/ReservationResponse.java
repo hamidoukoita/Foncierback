@@ -51,4 +51,12 @@ public class ReservationResponse {
     private LocalDateTime datePaiement;
     private Boolean rembourse;
     private LocalDateTime dateRemboursement;
+
+    // --- Bien vendu à un autre acquéreur ---
+    private com.example.foncierback.entity.enums.SuiteVente suiteVente;
+    private LocalDateTime dateLimiteChoix;
+    private LocalDateTime dateRemboursementPrevue;
+    private Long reservationRemplacanteId;
+    private Long reservationOrigineId;
+    private LocalDateTime dateAttribution;
 }

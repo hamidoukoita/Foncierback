@@ -38,6 +38,7 @@ public class SocietePromotriceRequest {
     @Size(max = 100, message = "Le numéro d'agrément ne doit pas dépasser 100 caractères")
     private String numeroAgrement;
 
+    @jakarta.validation.constraints.PastOrPresent(message = "La date d'octroi de l'agrément ne peut pas être dans le futur")
     private LocalDate dateAgrement;
 
     private StatutAgrement statutAgrement;

@@ -5,6 +5,12 @@ import com.example.foncierback.dto.request.AgentPromoteurRequest;
 import com.example.foncierback.dto.response.AgentPromoteurResponse;
 import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.service.AgentPromoteurService;
+import com.example.foncierback.service.AgentStatistiquesService;
+import com.example.foncierback.dto.response.AgentStatistiquesResponse;
+import com.example.foncierback.dto.response.PageResponse;
+import com.example.foncierback.dto.response.RendezVousResponse;
+import com.example.foncierback.dto.response.ReservationResponse;
+import com.example.foncierback.entity.enums.PeriodeStatistiques;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +29,7 @@ import java.util.List;
 public class AgentPromoteurController {
 
     private final AgentPromoteurService agentPromoteurService;
+    private final AgentStatistiquesService agentStatistiquesService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#request.societeId))")
@@ -38,6 +45,40 @@ public class AgentPromoteurController {
     public ResponseEntity<ApiResponse<AgentPromoteurResponse>> getById(@PathVariable Long id) {
         AgentPromoteurResponse response = agentPromoteurService.getById(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Agent promoteur récupéré avec succès", response));
+    }
+
+    @GetMapping("/{id}/statistiques")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Indicateurs d'activité d'un agent (réservations, visites, ventes, réactivité) sur une période")
+    public ResponseEntity<ApiResponse<AgentStatistiquesResponse>> statistiques(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "TOUT") PeriodeStatistiques periode) {
+        AgentStatistiquesResponse response = agentStatistiquesService.statistiques(id, periode);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Indicateurs de l'agent récupérés", response));
+    }
+
+    @GetMapping("/{id}/dossiers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Dossiers de réservation suivis par un agent sur une période, paginés")
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponse>>> dossiers(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "TOUT") PeriodeStatistiques periode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int taille) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Dossiers de l'agent récupérés",
+                agentStatistiquesService.dossiers(id, periode, page, taille)));
+    }
+
+    @GetMapping("/{id}/visites")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+    @Operation(summary = "Visites attribuées à un agent sur une période, paginées")
+    public ResponseEntity<ApiResponse<PageResponse<RendezVousResponse>>> visites(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "TOUT") PeriodeStatistiques periode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int taille) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Visites de l'agent récupérées",
+                agentStatistiquesService.visites(id, periode, page, taille)));
     }
 
     @GetMapping

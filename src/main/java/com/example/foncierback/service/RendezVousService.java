@@ -1,6 +1,7 @@
 package com.example.foncierback.service;
 
 import com.example.foncierback.dto.request.RendezVousRequest;
+import com.example.foncierback.dto.response.PageResponse;
 import com.example.foncierback.dto.response.RendezVousResponse;
 import com.example.foncierback.entity.RendezVous;
 import com.example.foncierback.entity.enums.StatutRendezVous;
@@ -34,6 +35,9 @@ public interface RendezVousService {
     List<RendezVousResponse> findByAcquereur(Long acquereurId);
 
     List<RendezVousResponse> findByAgent(Long agentId);
+
+    /** Visites d'un agent datées depuis [debut], les plus récentes d'abord. */
+    PageResponse<RendezVousResponse> pageParAgent(Long agentId, java.time.LocalDateTime debut, int page, int taille);
 
     List<RendezVousResponse> findBySociete(Long societeId);
 

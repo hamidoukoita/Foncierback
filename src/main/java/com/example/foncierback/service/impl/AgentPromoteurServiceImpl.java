@@ -183,8 +183,9 @@ public class AgentPromoteurServiceImpl implements AgentPromoteurService {
         int rdvCount = 0;
         if (entity.getId() != null) {
             try {
-                reservationsCount = reservationRepository.findByAgentPromoteurId(entity.getId()).size();
-                rdvCount = rendezVousRepository.findByAgentPromoteurId(entity.getId()).size();
+                // Simple comptage : pas besoin de charger les dossiers eux-mêmes.
+                reservationsCount = (int) reservationRepository.countByAgentPromoteurId(entity.getId());
+                rdvCount = (int) rendezVousRepository.countByAgentPromoteurId(entity.getId());
             } catch (Exception ignored) {
                 // repos optionnels selon le contexte de test
             }
