@@ -21,6 +21,7 @@ import com.example.foncierback.repository.ReservationRepository;
 import com.example.foncierback.service.DisponibiliteBien;
 import com.example.foncierback.service.ReglesReservationResolver;
 import com.example.foncierback.service.ReservationService;
+import com.example.foncierback.service.SuiteVenteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -94,19 +95,56 @@ public class ReservationServiceImpl implements ReservationService {
                 .referencePaiement(payante ? referencePaiement(maintenant) : null)
                 .datePaiement(payante ? maintenant : null)
                 .build();
-        Reservation saved = reservationRepository.save(reservation);
-
-        if (bien.getStatut() == StatutParcelle.DISPONIBLE) {
-            bien.setStatut(StatutParcelle.RESERVER);
-            bienFoncierRepository.save(bien);
-        }
-
+        Reservation saved = enregistrer(reservation);
         notifications.notifySocietePourBien(bien, TYPE_RESERVATION, LIBELLE_RESERVATION,
                 "Nouvelle réservation",
                 nomAcquereur(saved) + " a réservé " + bien.designation()
                         + (payante ? " (" + montant.toPlainString() + " FCFA payés)" : "")
                         + ". Attribuez un agent pour suivre le dossier.");
         return mapToResponse(saved);
+    }
+
+    @Override
+    public Reservation reporterSurBien(Reservation origine, BienFoncier bien) {
+        Acquereur acquereur = origine.getAcquereur();
+        if (acquereur != null && disponibilite.aDejaReserve(bien, acquereur.getId())) {
+            throw new BadRequestException("Vous avez déjà une réservation en cours sur ce bien.");
+        }
+        String motif = disponibilite.motifReservationImpossible(bien);
+        if (motif != null) {
+            throw new BadRequestException(motif);
+        }
+
+        // Le paiement d'origine est conservé : aucun nouveau débit.
+        Reservation reservation = Reservation.builder()
+                .numeroDossier(numeroDossierUnique(null))
+                .dateReservation(LocalDateTime.now())
+                .statut(StatutReservation.EN_ATTENTE)
+                .bienFoncier(bien)
+                .acquereur(acquereur)
+                .montantReservation(origine.getMontantReservation())
+                .moyenPaiement(origine.getMoyenPaiement())
+                .referencePaiement(origine.getReferencePaiement())
+                .datePaiement(origine.getDatePaiement())
+                .reservationOrigineId(origine.getId())
+                .build();
+        Reservation saved = enregistrer(reservation);
+        notifications.notifySocietePourBien(bien, TYPE_RESERVATION, LIBELLE_RESERVATION,
+                "Nouvelle réservation (report)",
+                nomAcquereur(saved) + " a reporté sa réservation " + origine.getNumeroDossier() + " sur "
+                        + bien.designation() + ", sans nouveau paiement. Attribuez un agent pour suivre le dossier.");
+        return saved;
+    }
+
+    /** Enregistre la réservation ; le bien disponible passe « réservé ». */
+    private Reservation enregistrer(Reservation reservation) {
+        Reservation saved = reservationRepository.save(reservation);
+        BienFoncier bien = saved.getBienFoncier();
+        if (bien.getStatut() == StatutParcelle.DISPONIBLE) {
+            bien.setStatut(StatutParcelle.RESERVER);
+            bienFoncierRepository.save(bien);
+        }
+        return saved;
     }
 
     /** Un acquéreur réserve toujours pour lui-même ; l'administrateur peut désigner l'acquéreur. */
@@ -200,6 +238,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.setAgentPromoteur(agent);
+        reservation.setDateAttribution(LocalDateTime.now());
         Reservation saved = reservationRepository.save(reservation);
         notifications.notifyUser(agent, TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation à suivre",
                 "Vous suivez la réservation " + saved.getNumeroDossier() + " (" + designation(saved)
@@ -253,12 +292,16 @@ public class ReservationServiceImpl implements ReservationService {
         bien.setStatut(StatutParcelle.VENDUE);
         bienFoncierRepository.save(bien);
 
-        // Les autres réservations du bien ne peuvent plus aboutir : elles sont remboursées.
+        // Les autres réservations du bien ne peuvent plus aboutir : leurs acquéreurs choisissent
+        // entre le remboursement et le report de leur paiement sur un autre bien de la société.
         List<Reservation> autres = reservationRepository.findByBienFoncierIdAndStatutInAndIdNot(bien.getId(), DisponibiliteBien.STATUTS_ACTIFS, saved.getId());
         for (Reservation autre : autres) {
-            autre.annulerAvecRemboursement("Le bien a été vendu à un autre acquéreur : votre réservation vous est remboursée.");
-            notifications.notifyUser(autre.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation remboursée",
-                    designation(autre) + " a été vendu à un autre acquéreur. Le montant de votre réservation vous est remboursé.");
+            autre.annulerCarVenduAUnAutre(SuiteVenteService.DELAI_CHOIX_HEURES);
+            notifications.notifyUser(autre.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Bien vendu à un autre acquéreur",
+                    designation(autre) + " a été vendu à un autre acquéreur. "
+                            + (autre.estPayee()
+                            ? "Choisissez dans l'application : réserver un autre bien avec le montant payé, ou être remboursé sous 24 h."
+                            : "Votre réservation est annulée."));
         }
         reservationRepository.saveAll(autres);
 
@@ -405,6 +448,15 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     @Transactional(readOnly = true)
+    public com.example.foncierback.dto.response.PageResponse<ReservationResponse> pageParAgent(
+            Long agentId, LocalDateTime debut, int page, int taille) {
+        return com.example.foncierback.dto.response.PageResponse.depuis(
+                reservationRepository.pageParAgent(agentId, debut, org.springframework.data.domain.PageRequest.of(page, taille)),
+                this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ReservationResponse> findBySociete(Long societeId) {
         return reservationRepository.findBySocieteId(societeId).stream().map(this::mapToResponse).toList();
     }
@@ -468,6 +520,12 @@ public class ReservationServiceImpl implements ReservationService {
                 .datePaiement(entity.getDatePaiement())
                 .rembourse(Boolean.TRUE.equals(entity.getRembourse()))
                 .dateRemboursement(entity.getDateRemboursement())
+                .suiteVente(entity.getSuiteVente())
+                .dateLimiteChoix(entity.getDateLimiteChoix())
+                .dateRemboursementPrevue(entity.getDateRemboursementPrevue())
+                .reservationRemplacanteId(entity.getReservationRemplacanteId())
+                .reservationOrigineId(entity.getReservationOrigineId())
+                .dateAttribution(entity.getDateAttribution())
                 .build();
     }
 }

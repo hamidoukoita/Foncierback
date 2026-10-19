@@ -12,6 +12,9 @@ import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.repository.UtilisateurRepository;
 import com.example.foncierback.service.AcquereurService;
 import com.example.foncierback.service.AuthService;
+import com.example.foncierback.service.KycService;
+import com.example.foncierback.entity.enums.TypeDocumentKyc;
+import org.springframework.web.multipart.MultipartFile;
 import com.example.foncierback.dto.request.RegisterSocieteRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.AgentPromoteur;
@@ -34,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final AcquereurService acquereurService;
     private final SocietePromotriceRepository societePromotriceRepository;
+    private final KycService kycService;
     private final AgentPromoteurRepository agentPromoteurRepository;
 
     @Override
@@ -100,6 +104,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public SocietePromotriceResponse registerSociete(RegisterSocieteRequest request) {
+        return registerSociete(request, null);
+    }
+
+    @Override
+    @Transactional
+    public SocietePromotriceResponse registerSociete(RegisterSocieteRequest request, MultipartFile dossierKyc) {
+        boolean avecDossier = dossierKyc != null && !dossierKyc.isEmpty();
+        if (avecDossier && !estPdf(dossierKyc)) {
+            throw new BadRequestException("Le dossier d'agrément doit être un fichier PDF");
+        }
         if (societePromotriceRepository.existsByNom(request.getNomSociete())) {
             throw new BadRequestException("Une société promotrice avec le nom '" + request.getNomSociete() + "' existe déjà");
         }
@@ -108,6 +122,9 @@ public class AuthServiceImpl implements AuthService {
         }
         if (request.getNumeroAgrement() != null && !request.getNumeroAgrement().isBlank() && societePromotriceRepository.existsByNumeroAgrement(request.getNumeroAgrement())) {
             throw new BadRequestException("Une société avec le numéro d'agrément '" + request.getNumeroAgrement() + "' existe déjà");
+        }
+        if (request.getEmailSociete() != null && societePromotriceRepository.existsByEmail(request.getEmailSociete())) {
+            throw new BadRequestException("Une société promotrice utilise déjà l'adresse e-mail " + request.getEmailSociete());
         }
         if (utilisateurRepository.existsByTelephone(request.getTelephoneResponsable())) {
             throw new BadRequestException("Un compte utilisateur avec le téléphone " + request.getTelephoneResponsable() + " existe déjà");
@@ -143,6 +160,11 @@ public class AuthServiceImpl implements AuthService {
 
         agentPromoteurRepository.save(responsable);
 
+        // 3. Dossier d'agrément consolidé, consultable par l'administrateur
+        if (avecDossier) {
+            kycService.uploadDocument(savedSociete.getId(), dossierKyc, TypeDocumentKyc.AGREMENT_MINISTERIEL);
+        }
+
         return SocietePromotriceResponse.builder()
                 .id(savedSociete.getId())
                 .nom(savedSociete.getNom())
@@ -156,5 +178,11 @@ public class AuthServiceImpl implements AuthService {
                 .siteWeb(savedSociete.getSiteWeb())
                 .description(savedSociete.getDescription())
                 .build();
+    }
+
+    private static boolean estPdf(MultipartFile fichier) {
+        String nom = fichier.getOriginalFilename();
+        return "application/pdf".equalsIgnoreCase(fichier.getContentType())
+                || (nom != null && nom.toLowerCase().endsWith(".pdf"));
     }
 }

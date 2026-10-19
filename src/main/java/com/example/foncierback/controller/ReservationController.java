@@ -4,6 +4,8 @@ import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.ReservationRequest;
 import com.example.foncierback.dto.response.ReservationResponse;
 import com.example.foncierback.service.ReservationService;
+import com.example.foncierback.service.SuiteVenteService;
+import com.example.foncierback.dto.response.BienRemplacementResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ import java.util.List;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final SuiteVenteService suiteVenteService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('ACQUEREUR')")
@@ -131,6 +134,29 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> vendre(@PathVariable Long id) {
         ReservationResponse response = reservationService.conclureVente(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Vente conclue", response));
+    }
+
+    @GetMapping("/{id}/biens-remplacement")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
+    @Operation(summary = "Biens disponibles de la même société pour reporter une réservation (bien vendu à un autre)")
+    public ResponseEntity<ApiResponse<List<BienRemplacementResponse>>> biensRemplacement(@PathVariable Long id) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Biens de remplacement récupérés", suiteVenteService.biensDeRemplacement(id)));
+    }
+
+    @PatchMapping("/{id}/remboursement")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
+    @Operation(summary = "Demander le remboursement (sous 24 h) d'une réservation dont le bien a été vendu à un autre")
+    public ResponseEntity<ApiResponse<ReservationResponse>> rembourser(@PathVariable Long id) {
+        ReservationResponse response = suiteVenteService.demanderRemboursement(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Remboursement demandé", response));
+    }
+
+    @PatchMapping("/{id}/remplacement/{bienId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
+    @Operation(summary = "Reporter le montant payé sur un autre bien de la société, sans nouveau paiement")
+    public ResponseEntity<ApiResponse<ReservationResponse>> remplacer(@PathVariable Long id, @PathVariable Long bienId) {
+        ReservationResponse response = suiteVenteService.remplacer(id, bienId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Réservation reportée sur le nouveau bien", response));
     }
 
     @PatchMapping("/{id}/annuler")

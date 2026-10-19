@@ -14,6 +14,8 @@ public interface LotProgrammeRepository extends JpaRepository<LotProgramme, Long
 
     List<LotProgramme> findByProgrammeFoncierId(Long programmeFoncierId);
 
+    List<LotProgramme> findByProgrammeFoncierSocietePromotriceIdAndStatutIn(Long societeId, java.util.Collection<StatutParcelle> statuts);
+
     List<LotProgramme> findByProgrammeFoncierIdAndStatut(Long programmeFoncierId, StatutParcelle statut);
 
     Optional<LotProgramme> findByProgrammeFoncierIdAndNumeroLot(Long programmeFoncierId, String numeroLot);

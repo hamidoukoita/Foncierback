@@ -23,6 +23,27 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long>, J
 
     List<RendezVous> findByAgentPromoteurId(Long agentId);
 
+    long countByAgentPromoteurId(Long agentId);
+
+    // --- Indicateurs d'un agent : visites dont la date tombe dans la période ---
+
+    @Query("select v.statut, count(v) from RendezVous v where v.agentPromoteur.id = :agentId and v.dateRendezVous >= :debut group by v.statut")
+    List<Object[]> compterParStatutPourAgent(@Param("agentId") Long agentId, @Param("debut") LocalDateTime debut);
+
+    /** Visites acceptées dont la date est passée : effectuées. */
+    @Query("""
+            select count(v) from RendezVous v
+            where v.agentPromoteur.id = :agentId and v.dateRendezVous >= :debut
+              and v.statut = :acceptee and v.dateRendezVous < :maintenant
+            """)
+    long compterEffectueesPourAgent(@Param("agentId") Long agentId, @Param("debut") LocalDateTime debut,
+                                    @Param("acceptee") StatutRendezVous acceptee, @Param("maintenant") LocalDateTime maintenant);
+
+    @Query(value = "select v from RendezVous v where v.agentPromoteur.id = :agentId and v.dateRendezVous >= :debut order by v.dateRendezVous desc",
+            countQuery = "select count(v) from RendezVous v where v.agentPromoteur.id = :agentId and v.dateRendezVous >= :debut")
+    org.springframework.data.domain.Page<RendezVous> pageParAgent(@Param("agentId") Long agentId, @Param("debut") LocalDateTime debut,
+                                                                  org.springframework.data.domain.Pageable pageable);
+
     List<RendezVous> findByBienFoncierId(Long bienId);
 
     List<RendezVous> findByCreneauId(Long creneauId);

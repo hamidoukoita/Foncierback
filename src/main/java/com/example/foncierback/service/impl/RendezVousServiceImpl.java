@@ -266,6 +266,15 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     @Override
     @Transactional(readOnly = true)
+    public com.example.foncierback.dto.response.PageResponse<RendezVousResponse> pageParAgent(
+            Long agentId, java.time.LocalDateTime debut, int page, int taille) {
+        return com.example.foncierback.dto.response.PageResponse.depuis(
+                rendezVousRepository.pageParAgent(agentId, debut, org.springframework.data.domain.PageRequest.of(page, taille)),
+                this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RendezVousResponse> findBySociete(Long societeId) {
         return rendezVousRepository.findBySocieteId(societeId)
                 .stream()

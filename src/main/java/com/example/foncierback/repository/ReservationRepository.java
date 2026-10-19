@@ -24,6 +24,62 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
 
     List<Reservation> findByAgentPromoteurId(Long agentId);
 
+    long countByAgentPromoteurId(Long agentId);
+
+    // --- Indicateurs d'un agent : agrégats calculés par la base, sans charger les dossiers ---
+    // Période : dossiers attribués (ou, à défaut, réservés) depuis :debut.
+
+    @Query("""
+            select r.statut, count(r) from Reservation r
+            where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
+            group by r.statut
+            """)
+    List<Object[]> compterParStatutPourAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut);
+
+    @Query("""
+            select coalesce(sum(b.prix), 0) from Reservation r join r.bienFoncier b
+            where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
+              and r.statut = :vendue
+            """)
+    java.math.BigDecimal chiffreAffairesAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut,
+                                              @Param("vendue") StatutReservation vendue);
+
+    /** Montants conservés : hors remboursements, et un report n'est compté que sur la réservation d'origine. */
+    @Query("""
+            select coalesce(sum(r.montantReservation), 0) from Reservation r
+            where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
+              and r.rembourse = false and r.reservationOrigineId is null
+              and (r.suiteVente is null or r.suiteVente not in :suitesRemboursees)
+            """)
+    java.math.BigDecimal reservationsEncaisseesAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut,
+                                                     @Param("suitesRemboursees") java.util.Collection<com.example.foncierback.entity.enums.SuiteVente> suitesRemboursees);
+
+    @Query(value = """
+            SELECT AVG(TIMESTAMPDIFF(MINUTE, date_attribution, date_debut_decompte)) FROM reservations
+            WHERE agent_id = :agentId AND COALESCE(date_attribution, date_reservation) >= :debut
+              AND date_attribution IS NOT NULL AND date_debut_decompte >= date_attribution
+            """, nativeQuery = true)
+    Double delaiMoyenPriseEnChargeMinutes(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut);
+
+    @Query(value = """
+            SELECT AVG(TIMESTAMPDIFF(MINUTE, date_debut_decompte, date_conclusion)) FROM reservations
+            WHERE agent_id = :agentId AND COALESCE(date_attribution, date_reservation) >= :debut
+              AND date_debut_decompte IS NOT NULL AND date_conclusion >= date_debut_decompte
+            """, nativeQuery = true)
+    Double delaiMoyenVenteMinutes(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut);
+
+    @Query(value = """
+            select r from Reservation r
+            where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
+            order by r.dateReservation desc
+            """,
+            countQuery = """
+            select count(r) from Reservation r
+            where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
+            """)
+    org.springframework.data.domain.Page<Reservation> pageParAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut,
+                                                                   org.springframework.data.domain.Pageable pageable);
+
     List<Reservation> findByStatut(StatutReservation statut);
 
     /** Demandes en attente depuis au moins le délai autorisé et sans agent affecté. */
@@ -39,6 +95,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
     boolean existsByBienFoncierIdAndStatutIn(Long bienId, java.util.Collection<StatutReservation> statuts);
 
     boolean existsByBienFoncierIdAndStatutAndIdNot(Long bienId, StatutReservation statut, Long id);
+
+    List<Reservation> findBySuiteVenteAndDateLimiteChoixLessThanEqual(com.example.foncierback.entity.enums.SuiteVente suite, java.time.LocalDateTime date);
+
+    List<Reservation> findBySuiteVenteAndDateRemboursementPrevueLessThanEqual(com.example.foncierback.entity.enums.SuiteVente suite, java.time.LocalDateTime date);
 
     List<Reservation> findByAcquereurIdAndStatut(Long acquereurId, StatutReservation statut);
 

@@ -12,6 +12,8 @@ public interface MaisonCleEnMainRepository extends JpaRepository<MaisonCleEnMain
 
     List<MaisonCleEnMain> findBySocietePromotriceIdOrderByIdDesc(Long societeId);
 
+    List<MaisonCleEnMain> findBySocietePromotriceIdAndStatutIn(Long societeId, java.util.Collection<com.example.foncierback.entity.enums.StatutParcelle> statuts);
+
     /** Catalogue public : seules les sociétés agréées publient (règle « aucune publication sans agrément »). */
     List<MaisonCleEnMain> findBySocietePromotriceStatutAgrementOrderByIdDesc(StatutAgrement statut);
 }

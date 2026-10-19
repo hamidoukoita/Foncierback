@@ -1,5 +1,6 @@
 package com.example.foncierback.service.impl;
 
+import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.dto.DocumentKycResponse;
 import com.example.foncierback.entity.DocumentKyc;
 import com.example.foncierback.entity.SocietePromotrice;
@@ -95,12 +96,10 @@ public class KycServiceImpl implements KycService {
 
         List<DocumentKyc> documents = documentKycRepository.findBySocietePromotriceId(societeId);
 
-        boolean hasNif = documents.stream().anyMatch(d -> d.getTypeDocument() == TypeDocumentKyc.NIF);
-        boolean hasRccm = documents.stream().anyMatch(d -> d.getTypeDocument() == TypeDocumentKyc.RCCM);
+        // Le dossier d'agrément (arrêté ou PDF consolidé de l'inscription) suffit ; RCCM, NIF et attestation le complètent.
         boolean hasAgrement = documents.stream().anyMatch(d -> d.getTypeDocument() == TypeDocumentKyc.AGREMENT_MINISTERIEL);
-
-        if (!hasNif || !hasRccm || !hasAgrement) {
-            throw new IllegalStateException("Le dossier KYC est incomplet. Veuillez fournir les 3 documents obligatoires (NIF, RCCM, Agrément).");
+        if (!hasAgrement) {
+            throw new BadRequestException("Le dossier est incomplet : déposez le dossier d'agrément avant de le soumettre.");
         }
 
         societe.setStatutAgrement(StatutAgrement.EN_ATTENTE);

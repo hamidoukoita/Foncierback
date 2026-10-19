@@ -49,6 +49,7 @@ public class RegisterSocieteRequest {
     @Pattern(regexp = Formats.TEXTE_UTILE, message = "Le numéro d'agrément est invalide")
     private String numeroAgrement;
 
+    @jakarta.validation.constraints.PastOrPresent(message = "La date d'octroi de l'agrément ne peut pas être dans le futur")
     private LocalDate dateAgrement;
 
     @NotBlank(message = "Le NIF est obligatoire")
@@ -111,11 +112,13 @@ public class RegisterSocieteRequest {
     }
 
     public void setEmailSociete(String valeur) {
-        this.emailSociete = Formats.nettoyer(valeur);
+        String email = Formats.nettoyer(valeur);
+        this.emailSociete = email == null ? null : email.toLowerCase(java.util.Locale.ROOT);
     }
 
     public void setEmailResponsable(String valeur) {
-        this.emailResponsable = Formats.nettoyer(valeur);
+        String email = Formats.nettoyer(valeur);
+        this.emailResponsable = email == null ? null : email.toLowerCase(java.util.Locale.ROOT);
     }
 
     public void setSiteWeb(String valeur) {

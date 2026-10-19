@@ -22,5 +22,7 @@ public interface ParcelleIndividuelleRepository extends JpaRepository<ParcelleIn
 
     List<ParcelleIndividuelle> findBySocietePromotriceIdAndStatut(Long societeId, StatutParcelle statut);
 
+    List<ParcelleIndividuelle> findBySocietePromotriceIdAndStatutIn(Long societeId, java.util.Collection<StatutParcelle> statuts);
+
     List<ParcelleIndividuelle> findByStatut(StatutParcelle statut);
 }
