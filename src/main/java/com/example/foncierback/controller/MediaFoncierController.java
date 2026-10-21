@@ -2,7 +2,6 @@ package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.LienPanoramaRequest;
-import com.example.foncierback.dto.request.MediaLienRequest;
 import com.example.foncierback.dto.request.MediaUpdateRequest;
 import com.example.foncierback.dto.response.LienPanoramaResponse;
 import com.example.foncierback.dto.response.MediaFoncierResponse;
@@ -85,33 +84,6 @@ public class MediaFoncierController {
             @RequestParam(value = "description", required = false) String description) {
         MediaFoncierResponse response = mediaService.ajouterFichierModele(modeleId, fichier, type, titre, description);
         return new ResponseEntity<>(new ApiResponse<>(true, "Média ajouté avec succès", response), HttpStatus.CREATED);
-    }
-
-    @PostMapping("/programme/{programmeId}/lien")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
-    @Operation(summary = "Ajouter une visite virtuelle (lien https) à un programme")
-    public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienProgramme(
-            @PathVariable Long programmeId, @Valid @RequestBody MediaLienRequest request) {
-        return new ResponseEntity<>(new ApiResponse<>(true, "Visite virtuelle ajoutée avec succès",
-                mediaService.ajouterLienProgramme(programmeId, request)), HttpStatus.CREATED);
-    }
-
-    @PostMapping("/bien/{bienId}/lien")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
-    @Operation(summary = "Ajouter une visite virtuelle (lien https) à un bien")
-    public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienBien(
-            @PathVariable Long bienId, @Valid @RequestBody MediaLienRequest request) {
-        return new ResponseEntity<>(new ApiResponse<>(true, "Visite virtuelle ajoutée avec succès",
-                mediaService.ajouterLienBien(bienId, request)), HttpStatus.CREATED);
-    }
-
-    @PostMapping("/modele/{modeleId}/lien")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
-    @Operation(summary = "Ajouter une visite virtuelle (lien https) à un modèle de maison")
-    public ResponseEntity<ApiResponse<MediaFoncierResponse>> ajouterLienModele(
-            @PathVariable Long modeleId, @Valid @RequestBody MediaLienRequest request) {
-        return new ResponseEntity<>(new ApiResponse<>(true, "Visite virtuelle ajoutée avec succès",
-                mediaService.ajouterLienModele(modeleId, request)), HttpStatus.CREATED);
     }
 
     // ------------------------------------------------------------ Visite virtuelle (maisons clés en main)
