@@ -3,8 +3,10 @@ package com.example.foncierback.controller;
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.LienPanoramaRequest;
 import com.example.foncierback.dto.request.MediaUpdateRequest;
+import com.example.foncierback.dto.request.VueArriveeRequest;
 import com.example.foncierback.dto.response.LienPanoramaResponse;
 import com.example.foncierback.dto.response.MediaFoncierResponse;
+import com.example.foncierback.dto.response.VisiteVirtuelleResponse;
 import com.example.foncierback.service.LienPanoramaService;
 import com.example.foncierback.service.MediaFoncierService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -88,10 +90,27 @@ public class MediaFoncierController {
 
     // ------------------------------------------------------------ Visite virtuelle (maisons clés en main)
 
-    @GetMapping("/bien/{bienId}/liens")
-    @Operation(summary = "Points de passage entre les panoramas 360° d'un bien")
-    public ResponseEntity<ApiResponse<List<LienPanoramaResponse>>> getLiens(@PathVariable Long bienId) {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Points de passage du bien", lienService.getByBien(bienId)));
+    @GetMapping("/bien/{bienId}/visite")
+    @Operation(summary = "Visite virtuelle d'une maison : pièce de départ et points de passage")
+    public ResponseEntity<ApiResponse<VisiteVirtuelleResponse>> getVisite(@PathVariable Long bienId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Visite virtuelle de la maison", lienService.getVisite(bienId)));
+    }
+
+    @PutMapping("/bien/{bienId}/visite/depart/{panoramaId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Choisir la pièce par laquelle commence la visite")
+    public ResponseEntity<ApiResponse<VisiteVirtuelleResponse>> definirDepart(
+            @PathVariable Long bienId, @PathVariable Long panoramaId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Pièce de départ enregistrée",
+                lienService.definirDepart(bienId, panoramaId)));
+    }
+
+    @PutMapping("/liens/{id}/vue-arrivee")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE'))")
+    @Operation(summary = "Régler la direction regardée en arrivant par ce point (null : automatique)")
+    public ResponseEntity<ApiResponse<LienPanoramaResponse>> definirVueArrivee(
+            @PathVariable Long id, @Valid @RequestBody VueArriveeRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Vue d'arrivée enregistrée", lienService.definirVueArrivee(id, request)));
     }
 
     @PostMapping("/liens")

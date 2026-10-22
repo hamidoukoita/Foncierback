@@ -4,12 +4,16 @@ import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.config.security.SecurityUtils;
 import com.example.foncierback.dto.request.LienPanoramaRequest;
+import com.example.foncierback.dto.request.VueArriveeRequest;
 import com.example.foncierback.dto.response.LienPanoramaResponse;
+import com.example.foncierback.dto.response.VisiteVirtuelleResponse;
 import com.example.foncierback.entity.BienFoncier;
 import com.example.foncierback.entity.LienPanorama;
+import com.example.foncierback.entity.MaisonCleEnMain;
 import com.example.foncierback.entity.MediaFoncier;
 import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.enums.TypeMedia;
+import com.example.foncierback.repository.BienFoncierRepository;
 import com.example.foncierback.repository.LienPanoramaRepository;
 import com.example.foncierback.repository.MediaFoncierRepository;
 import com.example.foncierback.service.LienPanoramaService;
@@ -37,11 +41,34 @@ public class LienPanoramaServiceImpl implements LienPanoramaService {
 
     private final LienPanoramaRepository lienRepository;
     private final MediaFoncierRepository mediaRepository;
+    private final BienFoncierRepository bienRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public List<LienPanoramaResponse> getByBien(Long bienId) {
-        return lienRepository.findBySourceBienFoncierIdOrderByIdAsc(bienId).stream().map(this::mapToResponse).toList();
+    public VisiteVirtuelleResponse getVisite(Long bienId) {
+        return visite(maison(bienId));
+    }
+
+    @Override
+    public VisiteVirtuelleResponse definirDepart(Long bienId, Long panoramaId) {
+        MaisonCleEnMain maison = maison(bienId);
+        verifierGestion(maison);
+        MediaFoncier panorama = panorama(panoramaId);
+        if (panorama.getBienFoncier() == null || !Objects.equals(panorama.getBienFoncier().getId(), bienId)) {
+            throw new BadRequestException("Ce panorama n'appartient pas à cette maison.");
+        }
+        maison.setPanoramaDepartId(panoramaId);
+        return visite(maison);
+    }
+
+    @Override
+    public LienPanoramaResponse definirVueArrivee(Long id, VueArriveeRequest request) {
+        LienPanorama lien = findLien(id);
+        verifierGestion(lien.getSource().getBienFoncier());
+        boolean reinitialiser = request.getAzimut() == null || request.getElevation() == null;
+        lien.setAzimutArrivee(reinitialiser ? null : request.getAzimut());
+        lien.setElevationArrivee(reinitialiser ? null : request.getElevation());
+        return mapToResponse(lienRepository.save(lien));
     }
 
     @Override
@@ -115,6 +142,29 @@ public class LienPanoramaServiceImpl implements LienPanoramaService {
         return media;
     }
 
+    private MaisonCleEnMain maison(Long bienId) {
+        BienFoncier bien = bienRepository.findById(bienId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bien foncier introuvable avec l'id : " + bienId));
+        if (!(bien instanceof MaisonCleEnMain maison)) {
+            throw new BadRequestException("La visite à panoramas liés est réservée aux maisons clés en main.");
+        }
+        return maison;
+    }
+
+    /** La pièce de départ n'est renvoyée que si son panorama existe encore dans la galerie de la maison. */
+    private VisiteVirtuelleResponse visite(MaisonCleEnMain maison) {
+        Long depart = maison.getPanoramaDepartId();
+        boolean departValide = depart != null && mediaRepository.findById(depart)
+                .filter(m -> m.getType() == TypeMedia.PANORAMA_360 && m.getBienFoncier() != null
+                        && Objects.equals(m.getBienFoncier().getId(), maison.getId()))
+                .isPresent();
+        return VisiteVirtuelleResponse.builder()
+                .panoramaDepartId(departValide ? depart : null)
+                .liens(lienRepository.findBySourceBienFoncierIdOrderByIdAsc(maison.getId()).stream()
+                        .map(this::mapToResponse).toList())
+                .build();
+    }
+
     private LienPanorama findLien(Long id) {
         return lienRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Point de passage introuvable avec l'id : " + id));
@@ -130,10 +180,13 @@ public class LienPanoramaServiceImpl implements LienPanoramaService {
         }
     }
 
-    /** Libellé saisi, sinon le titre du panorama d'arrivée (« Chambre »), sinon « Pièce suivante ». */
+    /**
+     * Libellé saisi, sinon le titre du panorama d'arrivée (« Chambre »), sinon null :
+     * l'application affiche alors le nom de la pièce d'arrivée (« Pièce 2 »).
+     */
     private String libelle(String saisi, MediaFoncier cible) {
         if (saisi != null && !saisi.isBlank()) return saisi.trim();
-        return cible.getTitre() != null && !cible.getTitre().isBlank() ? cible.getTitre().trim() : "Pièce suivante";
+        return cible.getTitre() != null && !cible.getTitre().isBlank() ? cible.getTitre().trim() : null;
     }
 
     private double normaliser(double azimut) {
@@ -149,6 +202,8 @@ public class LienPanoramaServiceImpl implements LienPanoramaService {
                 .azimut(l.getAzimut())
                 .elevation(l.getElevation())
                 .libelle(l.getLibelle())
+                .azimutArrivee(l.getAzimutArrivee())
+                .elevationArrivee(l.getElevationArrivee())
                 .build();
     }
 }

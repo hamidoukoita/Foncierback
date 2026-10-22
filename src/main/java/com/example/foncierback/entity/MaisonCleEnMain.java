@@ -72,6 +72,10 @@ public class MaisonCleEnMain extends BienFoncier {
     @ToString.Exclude
     private SocietePromotrice societePromotrice;
 
+    /** Panorama par lequel commence la visite virtuelle (null : le premier de la galerie). */
+    @Column(name = "panorama_depart_id")
+    private Long panoramaDepartId;
+
     @Override
     public SocietePromotrice societeGestionnaire() {
         return societePromotrice;
