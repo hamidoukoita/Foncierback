@@ -12,8 +12,7 @@ import java.time.LocalDateTime;
  * Média (photo ou panorama 360°) rattaché à un programme foncier
  * OU à un bien foncier (lot de programme, parcelle individuelle, maison clé en main)
  * OU à un modèle de maison du catalogue de construction.
- * PHOTO et PANORAMA_360 : fichier stocké sur disque (nomFichier).
- * VISITE_VIRTUELLE (lien externe, colonne lienExterne) : ancien type, plus utilisé.
+ * Le fichier est stocké sur disque (nomFichier).
  */
 @Entity
 @Table(name = "medias_fonciers")
@@ -44,9 +43,6 @@ public class MediaFoncier {
 
     @Column(name = "type_contenu", length = 100)
     private String typeContenu;
-
-    @Column(name = "lien_externe", length = 1000)
-    private String lienExterne;
 
     @Column(nullable = false)
     private Integer ordre;

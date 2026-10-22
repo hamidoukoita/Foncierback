@@ -36,6 +36,40 @@ public class CorrectifSchema implements ApplicationRunner {
         for (Colonne colonne : COLONNES_ENUM) {
             convertirEnVarchar(colonne.table(), colonne.nom());
         }
+        supprimerLiensExternes();
+        retirerLibellesGeneriques();
+    }
+
+    /** L'ancien libellé par défaut « Pièce suivante » est remplacé par le nom de la pièce d'arrivée, calculé à l'affichage. */
+    private void retirerLibellesGeneriques() {
+        try {
+            jdbc.update("UPDATE liens_panoramas SET libelle = NULL WHERE libelle = 'Pièce suivante'");
+        } catch (RuntimeException e) {
+            log.warn("Mise à jour des libellés de points impossible : {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Les visites virtuelles par lien externe (Matterport, Kuula…) ont été retirées :
+     * on efface les anciennes lignes, puis la colonne qui portait le lien.
+     */
+    private void supprimerLiensExternes() {
+        try {
+            int supprimes = jdbc.update("DELETE FROM medias_fonciers WHERE type = 'VISITE_VIRTUELLE'");
+            if (supprimes > 0) {
+                log.info("{} ancien(s) lien(s) externe(s) de visite virtuelle supprimé(s).", supprimes);
+            }
+            Integer colonne = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS"
+                            + " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'medias_fonciers' AND COLUMN_NAME = 'lien_externe'",
+                    Integer.class);
+            if (colonne != null && colonne > 0) {
+                jdbc.execute("ALTER TABLE medias_fonciers DROP COLUMN lien_externe");
+                log.info("Colonne medias_fonciers.lien_externe supprimée.");
+            }
+        } catch (RuntimeException e) {
+            log.warn("Suppression des liens externes impossible : {}", e.getMessage());
+        }
     }
 
     private void convertirEnVarchar(String table, String colonne) {

@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -24,6 +25,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         log.warn("ResourceNotFoundException: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /** Route inexistante (ou retirée) : 404 plutôt qu'une erreur interne. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleRouteInconnue(NoResourceFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Cette adresse n'existe pas sur le serveur Foncier+.");
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

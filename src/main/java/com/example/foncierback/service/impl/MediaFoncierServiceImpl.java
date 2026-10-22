@@ -152,9 +152,6 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
 
     private MediaFoncier construireDepuisFichier(MultipartFile fichier, String type, String titre, String description) {
         TypeMedia typeMedia = parseType(type);
-        if (typeMedia == TypeMedia.VISITE_VIRTUELLE) {
-            throw new BadRequestException("Type de média non pris en charge : utilisez PHOTO ou PANORAMA_360");
-        }
         if (fichier == null || fichier.isEmpty()) {
             throw new BadRequestException("Le fichier est obligatoire");
         }
@@ -259,12 +256,8 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
         return mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(media.getModelMaison().getId());
     }
 
-    /** Photos et panoramas : les anciens liens externes de visite virtuelle ne sont plus proposés. */
     private List<MediaFoncierResponse> visibles(List<MediaFoncier> medias) {
-        return medias.stream()
-                .filter(m -> m.getType() != TypeMedia.VISITE_VIRTUELLE)
-                .map(this::mapToResponse)
-                .toList();
+        return medias.stream().map(this::mapToResponse).toList();
     }
 
     private MediaFoncier findMedia(Long id) {
@@ -278,7 +271,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
                 .type(m.getType())
                 .titre(m.getTitre())
                 .description(m.getDescription())
-                .url(m.getNomFichier() != null ? PREFIXE_URL + m.getNomFichier() : m.getLienExterne())
+                .url(PREFIXE_URL + m.getNomFichier())
                 .typeContenu(m.getTypeContenu())
                 .ordre(m.getOrdre())
                 .dateAjout(m.getDateAjout())

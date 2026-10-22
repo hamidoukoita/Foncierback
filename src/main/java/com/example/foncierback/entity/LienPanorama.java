@@ -9,6 +9,7 @@ import org.hibernate.annotations.OnDeleteAction;
  * Point de passage d'une visite virtuelle : posé dans un panorama 360° (source),
  * il mène à un autre panorama du même bien (cible), par exemple « Salon → Chambre ».
  * La position est une direction dans la sphère : azimut (-180° à 180°) et élévation (-90° à 90°).
+ * La vue d'arrivée, facultative, est la direction regardée en entrant dans la pièce cible.
  */
 @Entity
 @Table(name = "liens_panoramas")
@@ -44,4 +45,10 @@ public class LienPanorama {
 
     @Column(length = 60)
     private String libelle;
+
+    @Column(name = "azimut_arrivee")
+    private Double azimutArrivee;
+
+    @Column(name = "elevation_arrivee")
+    private Double elevationArrivee;
 }
