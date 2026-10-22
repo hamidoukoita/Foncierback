@@ -2,7 +2,6 @@ package com.example.foncierback.service.impl;
 
 import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
-import com.example.foncierback.dto.request.MediaLienRequest;
 import com.example.foncierback.dto.request.MediaUpdateRequest;
 import com.example.foncierback.dto.response.MediaFoncierResponse;
 import com.example.foncierback.entity.BienFoncier;
@@ -60,22 +59,19 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
     @Override
     @Transactional(readOnly = true)
     public List<MediaFoncierResponse> getByProgramme(Long programmeId) {
-        return mediaRepository.findByProgrammeFoncierIdOrderByOrdreAscIdAsc(programmeId)
-                .stream().map(this::mapToResponse).toList();
+        return visibles(mediaRepository.findByProgrammeFoncierIdOrderByOrdreAscIdAsc(programmeId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<MediaFoncierResponse> getByBien(Long bienId) {
-        return mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(bienId)
-                .stream().map(this::mapToResponse).toList();
+        return visibles(mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(bienId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<MediaFoncierResponse> getByModele(Long modeleId) {
-        return mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(modeleId)
-                .stream().map(this::mapToResponse).toList();
+        return visibles(mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(modeleId));
     }
 
     // ------------------------------------------------------------------ Fichiers (photo / panorama)
@@ -102,35 +98,6 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
     public MediaFoncierResponse ajouterFichierModele(Long modeleId, MultipartFile fichier, String type, String titre, String description) {
         ModelMaison modele = findModele(modeleId);
         MediaFoncier media = construireDepuisFichier(fichier, type, titre, description);
-        media.setModelMaison(modele);
-        media.setOrdre(mediaRepository.maxOrdreModele(modeleId) + 1);
-        return mapToResponse(mediaRepository.save(media));
-    }
-
-    // ------------------------------------------------------------------ Liens (visite virtuelle)
-
-    @Override
-    public MediaFoncierResponse ajouterLienProgramme(Long programmeId, MediaLienRequest request) {
-        ProgrammeFoncier programme = findProgramme(programmeId);
-        MediaFoncier media = construireDepuisLien(request);
-        media.setProgrammeFoncier(programme);
-        media.setOrdre(mediaRepository.maxOrdreProgramme(programmeId) + 1);
-        return mapToResponse(mediaRepository.save(media));
-    }
-
-    @Override
-    public MediaFoncierResponse ajouterLienBien(Long bienId, MediaLienRequest request) {
-        BienFoncier bien = findBien(bienId);
-        MediaFoncier media = construireDepuisLien(request);
-        media.setBienFoncier(bien);
-        media.setOrdre(mediaRepository.maxOrdreBien(bienId) + 1);
-        return mapToResponse(mediaRepository.save(media));
-    }
-
-    @Override
-    public MediaFoncierResponse ajouterLienModele(Long modeleId, MediaLienRequest request) {
-        ModelMaison modele = findModele(modeleId);
-        MediaFoncier media = construireDepuisLien(request);
         media.setModelMaison(modele);
         media.setOrdre(mediaRepository.maxOrdreModele(modeleId) + 1);
         return mapToResponse(mediaRepository.save(media));
@@ -186,7 +153,7 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
     private MediaFoncier construireDepuisFichier(MultipartFile fichier, String type, String titre, String description) {
         TypeMedia typeMedia = parseType(type);
         if (typeMedia == TypeMedia.VISITE_VIRTUELLE) {
-            throw new BadRequestException("Une visite virtuelle s'ajoute avec un lien, pas avec un fichier");
+            throw new BadRequestException("Type de média non pris en charge : utilisez PHOTO ou PANORAMA_360");
         }
         if (fichier == null || fichier.isEmpty()) {
             throw new BadRequestException("Le fichier est obligatoire");
@@ -230,18 +197,9 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
                 .build();
     }
 
-    private MediaFoncier construireDepuisLien(MediaLienRequest request) {
-        return MediaFoncier.builder()
-                .type(TypeMedia.VISITE_VIRTUELLE)
-                .titre(nettoyer(request.getTitre()))
-                .description(nettoyer(request.getDescription()))
-                .lienExterne(request.getLienExterne().trim())
-                .build();
-    }
-
     private TypeMedia parseType(String type) {
         if (type == null || type.isBlank()) {
-            throw new BadRequestException("Le type de média est obligatoire (PHOTO, PANORAMA_360 ou VISITE_VIRTUELLE)");
+            throw new BadRequestException("Le type de média est obligatoire (PHOTO ou PANORAMA_360)");
         }
         try {
             return TypeMedia.valueOf(type.trim().toUpperCase());
@@ -299,6 +257,14 @@ public class MediaFoncierServiceImpl implements MediaFoncierService {
             return mediaRepository.findByBienFoncierIdOrderByOrdreAscIdAsc(media.getBienFoncier().getId());
         }
         return mediaRepository.findByModelMaisonIdOrderByOrdreAscIdAsc(media.getModelMaison().getId());
+    }
+
+    /** Photos et panoramas : les anciens liens externes de visite virtuelle ne sont plus proposés. */
+    private List<MediaFoncierResponse> visibles(List<MediaFoncier> medias) {
+        return medias.stream()
+                .filter(m -> m.getType() != TypeMedia.VISITE_VIRTUELLE)
+                .map(this::mapToResponse)
+                .toList();
     }
 
     private MediaFoncier findMedia(Long id) {

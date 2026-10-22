@@ -67,13 +67,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuth(AuthenticationException ex) {
         log.warn("AuthenticationException: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Authentification échouée : " + ex.getMessage());
+        // Message neutre : le détail technique (« Bad credentials »…) reste dans les logs.
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Votre session a expiré ou vos identifiants sont invalides. Veuillez vous reconnecter.");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
         log.error("Exception non gérée capturée : ", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage() != null ? ex.getMessage() : "Une erreur interne est survenue.");
+        // Jamais de message technique côté client : la trace complète est dans les logs du serveur.
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur interne est survenue. Veuillez réessayer dans un instant.");
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(

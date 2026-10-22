@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getStatut() != StatutCompte.ACTIF) {
-            throw new BadRequestException("Compte non actif (statut: " + user.getStatut() + ")");
+            throw new BadRequestException("Votre compte n'est pas encore activé. Veuillez contacter le support.");
         }
 
         return sessionPour(user);
