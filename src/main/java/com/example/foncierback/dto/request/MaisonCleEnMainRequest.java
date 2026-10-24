@@ -1,6 +1,8 @@
 package com.example.foncierback.dto.request;
 
+import com.example.foncierback.common.validation.Formats;
 import com.example.foncierback.entity.enums.StatutParcelle;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,8 +13,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Jackson passe par le constructeur vide puis par les setters, qui normalisent le numéro de Titre Foncier. */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(onConstructor_ = @JsonCreator)
 @AllArgsConstructor
 @Builder
 public class MaisonCleEnMainRequest {
@@ -48,6 +51,7 @@ public class MaisonCleEnMainRequest {
     private Integer nombreNiveaux;
 
     @Size(max = 100, message = "Le numéro de Titre Foncier ne doit pas dépasser 100 caractères")
+    @Pattern(regexp = Formats.TITRE_FONCIER, message = Formats.MESSAGE_TITRE_FONCIER)
     private String numeroTitreFoncier;
 
     @Size(max = 255, message = "L'adresse ne doit pas dépasser 255 caractères")
@@ -68,4 +72,8 @@ public class MaisonCleEnMainRequest {
 
     /** Ignoré pour un responsable : la société est celle de la session. */
     private Long societeId;
+
+    public void setNumeroTitreFoncier(String valeur) {
+        this.numeroTitreFoncier = Formats.titreFoncier(valeur);
+    }
 }

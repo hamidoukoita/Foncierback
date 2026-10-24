@@ -39,7 +39,7 @@ import java.util.UUID;
  * Cycle d'une réservation :
  * paiement (simulé) → en attente d'un agent → décompte démarré par l'agent → vendue avant l'échéance,
  * ou expirée à l'échéance (montant non rendu). L'acquéreur peut se désister tant que le bien
- * n'est pas vendu, sans remboursement. La société ne refuse pas une réservation : tout bien
+ * n'est pas vendu, remboursé selon le pourcentage fixé par la société. La société ne refuse pas une réservation : tout bien
  * disponible est réservable. Le statut du bien suit ses réservations (réservé, vendu, disponible).
  */
 @Service
@@ -90,6 +90,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .bienFoncier(bien)
                 .acquereur(acquereur)
                 .montantReservation(montant)
+                .pourcentageRemboursement(reglesResolver.pourcentageRemboursement(bien))
                 // Paiement simulé : aucun appel à Orange Money, la transaction est réputée acceptée.
                 .moyenPaiement(payante ? MOYEN_ORANGE_MONEY : null)
                 .referencePaiement(payante ? referencePaiement(maintenant) : null)
@@ -123,6 +124,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .bienFoncier(bien)
                 .acquereur(acquereur)
                 .montantReservation(origine.getMontantReservation())
+                .pourcentageRemboursement(reglesResolver.pourcentageRemboursement(bien))
                 .moyenPaiement(origine.getMoyenPaiement())
                 .referencePaiement(origine.getReferencePaiement())
                 .datePaiement(origine.getDatePaiement())
@@ -183,6 +185,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .motifVisiteImpossible(motifVisite)
                 .vendu(bien.getStatut() == StatutParcelle.VENDUE)
                 .societeNom(societe != null ? societe.getNom() : null)
+                .pourcentageRemboursement(reglesResolver.pourcentageRemboursement(societe))
                 .build();
     }
 
@@ -248,7 +251,8 @@ public class ReservationServiceImpl implements ReservationService {
         notifications.notifyUser(saved.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Votre dossier est confirmé",
                 "Votre réservation " + saved.getNumeroDossier() + " (" + designation(saved) + ") est confiée à "
                         + nomAgent + (agent.getTelephone() != null ? ", joignable au " + agent.getTelephone() : "")
-                        + ". Votre agent vous contactera pour la suite.");
+                        + ". Votre agent vous contactera pour la suite.",
+                "RESERVATION", saved.getId());
         return mapToResponse(saved);
     }
 
@@ -272,7 +276,8 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation saved = reservationRepository.save(reservation);
         notifications.notifyUser(saved.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Votre réservation est lancée",
                 "Votre agent a démarré le suivi de " + designation(saved) + ". Le bien vous est réservé pendant "
-                        + duree + " heures pour conclure la vente.");
+                        + duree + " heures pour conclure la vente.",
+                "RESERVATION", saved.getId());
         return mapToResponse(saved);
     }
 
@@ -301,12 +306,14 @@ public class ReservationServiceImpl implements ReservationService {
                     designation(autre) + " a été vendu à un autre acquéreur. "
                             + (autre.estPayee()
                             ? "Choisissez dans l'application : réserver un autre bien avec le montant payé, ou être remboursé sous 24 h."
-                            : "Votre réservation est annulée."));
+                            : "Votre réservation est annulée."),
+                "RESERVATION", autre.getId());
         }
         reservationRepository.saveAll(autres);
 
         notifications.notifyUser(saved.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Félicitations !",
-                "La vente de " + designation(saved) + " est conclue.");
+                "La vente de " + designation(saved) + " est conclue.",
+                "RESERVATION", saved.getId());
         return mapToResponse(saved);
     }
 
@@ -375,7 +382,8 @@ public class ReservationServiceImpl implements ReservationService {
         libererBienSiPlusReserve(reservation.getBienFoncier());
         notifications.notifyUser(reservation.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation expirée",
                 "Le délai de votre réservation sur " + designation(reservation)
-                        + " est écoulé sans vente. Le bien est de nouveau disponible.");
+                        + " est écoulé sans vente. Le bien est de nouveau disponible.",
+                "RESERVATION", reservation.getId());
     }
 
     /** Le bien redevient disponible quand plus aucune réservation ne le bloque. */
@@ -519,6 +527,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .referencePaiement(entity.getReferencePaiement())
                 .datePaiement(entity.getDatePaiement())
                 .rembourse(Boolean.TRUE.equals(entity.getRembourse()))
+                .pourcentageRemboursement(entity.getPourcentageRemboursement() != null ? entity.getPourcentageRemboursement() : 0)
+                .montantRembourse(entity.getMontantRembourse())
                 .dateRemboursement(entity.getDateRemboursement())
                 .suiteVente(entity.getSuiteVente())
                 .dateLimiteChoix(entity.getDateLimiteChoix())

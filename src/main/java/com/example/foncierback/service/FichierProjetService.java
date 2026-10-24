@@ -11,6 +11,9 @@ public interface FichierProjetService {
 
     FichierProjetResponse ajouter(Long projetId, TypeFichierProjet type, MultipartFile fichier);
 
+    /** Plan joint par la société à une proposition encore sans réponse. */
+    FichierProjetResponse ajouterPlanProposition(Long propositionId, MultipartFile fichier);
+
     FichierProjet trouver(Long projetId, Long fichierId);
 
     Resource charger(FichierProjet fichier);

@@ -1,5 +1,7 @@
 package com.example.foncierback.dto.request;
 
+import com.example.foncierback.common.validation.Formats;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import com.example.foncierback.entity.enums.StatutProgramme;
@@ -7,6 +9,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -14,8 +17,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Jackson passe par le constructeur vide puis par les setters, qui normalisent le numéro de Titre Foncier mère. */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(onConstructor_ = @JsonCreator)
 @AllArgsConstructor
 @Builder
 public class ProgrammeFoncierRequest {
@@ -39,6 +43,7 @@ public class ProgrammeFoncierRequest {
 
     @NotBlank(message = "Le numéro du Titre Foncier mère est obligatoire")
     @Size(max = 100, message = "Le numéro du Titre Foncier mère ne doit pas dépasser 100 caractères")
+    @Pattern(regexp = Formats.TITRE_FONCIER, message = Formats.MESSAGE_TITRE_FONCIER)
     private String numeroTitreMere;
 
     @NotNull(message = "La superficie totale est obligatoire")
@@ -63,4 +68,8 @@ public class ProgrammeFoncierRequest {
     private Boolean voirieBitumee = false;
 
     private Long societeId;
+
+    public void setNumeroTitreMere(String valeur) {
+        this.numeroTitreMere = Formats.titreFoncier(valeur);
+    }
 }

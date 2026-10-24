@@ -1,10 +1,15 @@
 package com.example.foncierback.dto.request;
 
+import com.example.foncierback.common.validation.Formats;
+import com.example.foncierback.dto.DescriptionMaisonDto;
 import com.example.foncierback.entity.enums.StatutProjet;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -15,8 +20,9 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/** Jackson passe par le constructeur vide puis par les setters, qui normalisent le numéro de Titre Foncier. */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(onConstructor_ = @JsonCreator)
 @AllArgsConstructor
 @Builder
 public class ProjetConstructionRequest {
@@ -26,6 +32,7 @@ public class ProjetConstructionRequest {
 
     @NotBlank(message = "Le numéro du Titre Foncier est obligatoire")
     @Size(max = 100, message = "Le numéro de Titre Foncier ne doit pas dépasser 100 caractères")
+    @Pattern(regexp = Formats.TITRE_FONCIER, message = Formats.MESSAGE_TITRE_FONCIER)
     private String numeroTitreFoncier;
 
     @Size(max = 200, message = "La localisation ne doit pas dépasser 200 caractères")
@@ -40,22 +47,13 @@ public class ProjetConstructionRequest {
 
     private String description;
 
+    /** Estimation facultative de l'acquéreur, au moins égale au budget minimum de la société. */
+    @Positive(message = "Le budget doit être strictement positif")
     private BigDecimal budgetEstime;
 
-    /** Modèle personnalisé : à renseigner quand aucun modèle du catalogue n'est choisi. */
-    @Size(max = 3000, message = "La description du modèle ne doit pas dépasser 3000 caractères")
-    private String descriptionModelePersonnalise;
-
-    @Min(value = 0, message = "Le nombre de chambres ne peut pas être négatif")
-    @Max(value = 30, message = "Le nombre de chambres semble incorrect")
-    private Integer nombreChambresSouhaitees;
-
-    @Min(value = 0, message = "Le nombre de salles de bain ne peut pas être négatif")
-    @Max(value = 30, message = "Le nombre de salles de bain semble incorrect")
-    private Integer nombreSallesBainSouhaitees;
-
-    @Positive(message = "La surface construite doit être strictement positive")
-    private Double surfaceConstruiteSouhaitee;
+    /** Modèle personnalisé : questionnaire à renseigner quand aucun modèle ni maison de référence n'est choisi. */
+    @Valid
+    private DescriptionMaisonDto maisonSouhaitee;
 
     private String documentTfUrl;
 
@@ -84,4 +82,8 @@ public class ProjetConstructionRequest {
     private Long societeId;
 
     private Long agentId;
+
+    public void setNumeroTitreFoncier(String valeur) {
+        this.numeroTitreFoncier = Formats.titreFoncier(valeur);
+    }
 }

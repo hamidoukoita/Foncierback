@@ -37,5 +37,8 @@ public class ProgrammeFoncierResponse {
     /** Logo de la société promotrice, affiché sur la publication côté acquéreur. */
     private String societeLogoUrl;
     private Integer totalLots;
+    /** Lots encore libres à la réservation, et lots déjà vendus (pour « tout est vendu »). */
+    private Integer lotsDisponibles;
+    private Integer lotsVendus;
     private Long planMasseId;
 }

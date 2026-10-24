@@ -14,5 +14,6 @@ public interface FichierProjetRepository extends JpaRepository<FichierProjet, Lo
 
     Optional<FichierProjet> findByIdAndProjetId(Long id, Long projetId);
 
-    long countByProjetId(Long projetId);
+    /** Pièces du dossier de l'acquéreur (hors plans joints aux propositions). */
+    long countByProjetIdAndPropositionIsNull(Long projetId);
 }

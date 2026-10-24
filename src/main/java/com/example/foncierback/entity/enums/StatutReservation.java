@@ -13,7 +13,7 @@ public enum StatutReservation {
     VENDUE,
     /** Échéance atteinte sans vente : le montant n'est pas rendu, le bien est libéré. */
     EXPIREE,
-    /** Annulée par l'acquéreur (non remboursée) ou parce que le bien a été vendu à un autre (remboursée). */
+    /** Annulée par l'acquéreur (remboursée selon la règle de la société) ou parce que le bien a été vendu à un autre (remboursée). */
     ANNULEE,
     /** Anciens dossiers, avant la réservation payante. */
     CONFIRMER,

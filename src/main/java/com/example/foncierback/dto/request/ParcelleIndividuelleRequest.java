@@ -1,9 +1,12 @@
 package com.example.foncierback.dto.request;
 
+import com.example.foncierback.common.validation.Formats;
 import com.example.foncierback.entity.enums.StatutParcelle;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -15,14 +18,16 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Jackson passe par le constructeur vide puis par les setters, qui normalisent le numéro de Titre Foncier. */
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(onConstructor_ = @JsonCreator)
 @AllArgsConstructor
 @Builder
 public class ParcelleIndividuelleRequest {
 
     @NotBlank(message = "Le numéro de Titre Foncier est obligatoire")
     @Size(max = 100, message = "Le numéro de Titre Foncier ne doit pas dépasser 100 caractères")
+    @Pattern(regexp = Formats.TITRE_FONCIER, message = Formats.MESSAGE_TITRE_FONCIER)
     private String numeroTitreFoncier;
 
     @Size(max = 100, message = "La référence ne doit pas dépasser 100 caractères")
@@ -68,4 +73,8 @@ public class ParcelleIndividuelleRequest {
 
     @Builder.Default
     private List<Long> commoditeIds = new ArrayList<>();
+
+    public void setNumeroTitreFoncier(String valeur) {
+        this.numeroTitreFoncier = Formats.titreFoncier(valeur);
+    }
 }

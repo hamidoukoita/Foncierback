@@ -31,5 +31,9 @@ public class SocietePromotriceResponse {
     /** Nombre maximal de réservations en cours sur un même bien. */
     private Integer reservationsMax;
     private java.math.BigDecimal prixReservation;
+    /** Part du montant rendue si l'acquéreur annule (0 à 100 %). */
+    private Integer pourcentageRemboursementAnnulation;
+    /** Budget minimum d'un projet de construction (null = pas de minimum), affiché à l'acquéreur. */
+    private java.math.BigDecimal budgetMinimumConstruction;
     private Boolean parametrageInitialFait;
 }

@@ -37,6 +37,13 @@ public class Notification {
     @Column(name = "date_envoi", nullable = false)
     private LocalDateTime dateEnvoi;
 
+    /** Élément concerné (ex. PROJET_CONSTRUCTION, RESERVATION), pour l'ouvrir depuis la notification. */
+    @Column(name = "cible_type", length = 40)
+    private String cibleType;
+
+    @Column(name = "cible_id")
+    private Long cibleId;
+
     // --- Cardinalités / Relations ---
 
     @ManyToOne(fetch = FetchType.LAZY)

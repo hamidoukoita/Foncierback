@@ -59,6 +59,22 @@ public class NotificationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Notification marquée comme lue", response));
     }
 
+    @PatchMapping("/utilisateur/{utilisateurId}/tout-lire")
+    @PreAuthorize("hasRole('ADMIN') or @securityUtils.isOwnerOrAdmin(#utilisateurId)")
+    @Operation(summary = "Marquer toutes les notifications d'un utilisateur comme lues")
+    public ResponseEntity<ApiResponse<Integer>> toutMarquerLu(@PathVariable Long utilisateurId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Notifications marquées comme lues",
+                notificationService.toutMarquerLu(utilisateurId)));
+    }
+
+    @PatchMapping("/cible/{cibleType}/{cibleId}/lire")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Marquer lues ses notifications concernant un élément (ex. un projet ouvert)")
+    public ResponseEntity<ApiResponse<Integer>> marquerLuesPourCible(@PathVariable String cibleType, @PathVariable Long cibleId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Notifications marquées comme lues",
+                notificationService.marquerLuesPourCible(cibleType, cibleId)));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une notification")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {

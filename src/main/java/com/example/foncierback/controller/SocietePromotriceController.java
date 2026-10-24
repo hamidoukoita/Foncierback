@@ -2,6 +2,7 @@ package com.example.foncierback.controller;
 
 import com.example.foncierback.common.response.ApiResponse;
 import com.example.foncierback.dto.request.ReglesReservationRequest;
+import com.example.foncierback.dto.request.ReglesConstructionRequest;
 import com.example.foncierback.dto.request.SocietePromotriceRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.enums.StatutAgrement;
@@ -72,6 +73,17 @@ public class SocietePromotriceController {
     ) {
         SocietePromotriceResponse response = societePromotriceService.updateReglesReservation(id, request);
         return ResponseEntity.ok(new ApiResponse<>(true, "Règles de réservation mises à jour", response));
+    }
+
+    @PatchMapping("/{id}/regles-construction")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('AGENT') and hasAuthority('RESPONSABLE_SOCIETE') and @securityUtils.belongsToSocieteOrAdmin(#id))")
+    @Operation(summary = "Fixer le budget minimum des projets « Construire sur mon terrain »")
+    public ResponseEntity<ApiResponse<SocietePromotriceResponse>> updateReglesConstruction(
+            @PathVariable Long id,
+            @Valid @RequestBody ReglesConstructionRequest request
+    ) {
+        SocietePromotriceResponse response = societePromotriceService.updateReglesConstruction(id, request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Budget minimum de construction mis à jour", response));
     }
 
     @PostMapping(value = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

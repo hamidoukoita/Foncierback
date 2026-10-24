@@ -1,5 +1,7 @@
 package com.example.foncierback.dto.response;
 
+import com.example.foncierback.dto.DescriptionMaisonDto;
+
 import com.example.foncierback.entity.enums.StatutProjet;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,9 +49,8 @@ public class ProjetConstructionResponse {
     private Long maisonReferenceId;
     private String maisonReferenceTitre;
     private String maisonReferenceImageUrl;
-    private String descriptionModelePersonnalise;
-    private Integer nombreChambresSouhaitees;
-    private Integer nombreSallesBainSouhaitees;
-    private Double surfaceConstruiteSouhaitee;
+    private DescriptionMaisonDto maisonSouhaitee;
+    /** Proposition acceptée par l'acquéreur (termes de l'accord), le cas échéant. */
+    private PropositionProjetResponse propositionRetenue;
     private java.util.List<FichierProjetResponse> fichiers;
 }

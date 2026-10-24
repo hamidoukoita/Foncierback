@@ -31,6 +31,12 @@ public class NotificationDispatchService {
     private final AgentPromoteurRepository agentPromoteurRepository;
 
     public void notifyUser(Utilisateur utilisateur, String code, String libelle, String titre, String message) {
+        notifyUser(utilisateur, code, libelle, titre, message, null, null);
+    }
+
+    /** Notification qui mène à un élément précis (cibleType + cibleId), ouvert depuis l'application. */
+    public void notifyUser(Utilisateur utilisateur, String code, String libelle, String titre, String message,
+                           String cibleType, Long cibleId) {
         if (utilisateur == null || utilisateur.getId() == null) return;
         Notification notification = Notification.builder()
                 .titre(titre)
@@ -39,6 +45,8 @@ public class NotificationDispatchService {
                 .dateEnvoi(LocalDateTime.now())
                 .typeNotification(resolveType(code, libelle))
                 .utilisateur(utilisateur)
+                .cibleType(cibleType)
+                .cibleId(cibleId)
                 .build();
         notificationRepository.save(notification);
     }
@@ -48,12 +56,17 @@ public class NotificationDispatchService {
      * qu'une fois un dossier attribué (via {@link #notifyUser}).
      */
     public void notifySociete(SocietePromotrice societe, String code, String libelle, String titre, String message) {
+        notifySociete(societe, code, libelle, titre, message, null, null);
+    }
+
+    public void notifySociete(SocietePromotrice societe, String code, String libelle, String titre, String message,
+                              String cibleType, Long cibleId) {
         if (societe == null || societe.getId() == null) return;
         List<AgentPromoteur> destinataires = agentPromoteurRepository.findBySocietePromotriceId(societe.getId());
         for (AgentPromoteur agent : destinataires) {
             StatutCompte statut = agent.getStatut();
             if (!agent.isEstResponsableSociete() || statut == StatutCompte.SUSPENDU || statut == StatutCompte.DESACTIVE) continue;
-            notifyUser(agent, code, libelle, titre, message);
+            notifyUser(agent, code, libelle, titre, message, cibleType, cibleId);
         }
     }
 

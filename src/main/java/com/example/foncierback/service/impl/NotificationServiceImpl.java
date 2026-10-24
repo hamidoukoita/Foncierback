@@ -1,5 +1,9 @@
 package com.example.foncierback.service.impl;
 
+import com.example.foncierback.config.security.SecurityUtils;
+import org.springframework.security.access.AccessDeniedException;
+import java.util.Objects;
+
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.NotificationRequest;
 import com.example.foncierback.dto.response.NotificationResponse;
@@ -80,9 +84,34 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public NotificationResponse markAsRead(Long id) {
         Notification notification = findEntityById(id);
+        verifierDestinataire(notification.getUtilisateur() == null ? null : notification.getUtilisateur().getId());
         notification.setLue(true);
         Notification updated = notificationRepository.save(notification);
         return mapToResponse(updated);
+    }
+
+    @Override
+    public int toutMarquerLu(Long utilisateurId) {
+        verifierDestinataire(utilisateurId);
+        List<Notification> nonLues = notificationRepository.findByUtilisateurIdAndLue(utilisateurId, false);
+        nonLues.forEach(n -> n.setLue(true));
+        return nonLues.size();
+    }
+
+    @Override
+    public int marquerLuesPourCible(String cibleType, Long cibleId) {
+        Long utilisateurId = SecurityUtils.getCurrentUserId();
+        if (utilisateurId == null) return 0;
+        List<Notification> nonLues = notificationRepository
+                .findByUtilisateurIdAndCibleTypeAndCibleIdAndLueFalse(utilisateurId, cibleType, cibleId);
+        nonLues.forEach(n -> n.setLue(true));
+        return nonLues.size();
+    }
+
+    private void verifierDestinataire(Long utilisateurId) {
+        if (!SecurityUtils.isAdmin() && !Objects.equals(utilisateurId, SecurityUtils.getCurrentUserId())) {
+            throw new AccessDeniedException("Cette notification ne vous est pas destinée.");
+        }
     }
 
     @Override
@@ -111,6 +140,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .utilisateurNom(entity.getUtilisateur() != null ? entity.getUtilisateur().getNom() : null)
                 .utilisateurPrenom(entity.getUtilisateur() != null ? entity.getUtilisateur().getPrenom() : null)
                 .utilisateurTelephone(entity.getUtilisateur() != null ? entity.getUtilisateur().getTelephone() : null)
+                .cibleType(entity.getCibleType())
+                .cibleId(entity.getCibleId())
                 .build();
     }
 }

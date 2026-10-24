@@ -5,7 +5,9 @@ import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.response.FichierProjetResponse;
 import com.example.foncierback.entity.FichierProjet;
 import com.example.foncierback.entity.ProjetConstruction;
-import com.example.foncierback.entity.enums.StatutProjet;
+import com.example.foncierback.entity.PropositionProjet;
+import com.example.foncierback.entity.enums.StatutProposition;
+import com.example.foncierback.repository.PropositionProjetRepository;
 import com.example.foncierback.entity.enums.TypeFichierProjet;
 import com.example.foncierback.repository.FichierProjetRepository;
 import com.example.foncierback.repository.ProjetConstructionRepository;
@@ -47,6 +49,7 @@ public class FichierProjetServiceImpl implements FichierProjetService {
     private final FichierProjetRepository fichierRepository;
     private final ProjetConstructionRepository projetRepository;
     private final ProjetConstructionAcces acces;
+    private final PropositionProjetRepository propositionRepository;
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
@@ -56,14 +59,31 @@ public class FichierProjetServiceImpl implements FichierProjetService {
         ProjetConstruction projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet de construction introuvable avec l'identifiant : " + projetId));
         acces.verifierProprietaire(projet);
-        if (projet.getStatut() != StatutProjet.EN_ETUDE) {
+        if (!projet.isEnCours()) {
             throw new BadRequestException("Le dossier a déjà été traité : il ne peut plus être complété.");
         }
-        if (fichier == null || fichier.isEmpty()) throw new BadRequestException("Le fichier est vide.");
-        if (fichier.getSize() > TAILLE_MAX_OCTETS) throw new BadRequestException("Le fichier dépasse 15 Mo.");
-        if (fichierRepository.countByProjetId(projetId) >= NOMBRE_MAX_FICHIERS) {
+        if (fichierRepository.countByProjetIdAndPropositionIsNull(projetId) >= NOMBRE_MAX_FICHIERS) {
             throw new BadRequestException("Un dossier accepte au maximum " + NOMBRE_MAX_FICHIERS + " pièces jointes.");
         }
+        return versReponse(enregistrer(projet, type, fichier, null));
+    }
+
+    @Override
+    public FichierProjetResponse ajouterPlanProposition(Long propositionId, MultipartFile fichier) {
+        PropositionProjet proposition = propositionRepository.findById(propositionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proposition introuvable avec l'identifiant : " + propositionId));
+        acces.verifierGestion(proposition.getProjet());
+        if (proposition.getStatut() != StatutProposition.EN_ATTENTE) {
+            throw new BadRequestException("L'acquéreur a déjà répondu : la proposition ne peut plus être modifiée.");
+        }
+        return versReponse(enregistrer(proposition.getProjet(), TypeFichierProjet.PLAN, fichier, proposition));
+    }
+
+    private FichierProjet enregistrer(ProjetConstruction projet, TypeFichierProjet type, MultipartFile fichier,
+                                      PropositionProjet proposition) {
+        Long projetId = projet.getId();
+        if (fichier == null || fichier.isEmpty()) throw new BadRequestException("Le fichier est vide.");
+        if (fichier.getSize() > TAILLE_MAX_OCTETS) throw new BadRequestException("Le fichier dépasse 15 Mo.");
         String contentType = fichier.getContentType() == null ? "" : fichier.getContentType().toLowerCase();
         String extension = EXTENSIONS.get(contentType);
         if (extension == null) throw new BadRequestException("Format non supporté : PDF, JPG, PNG ou WEBP uniquement.");
@@ -87,8 +107,10 @@ public class FichierProjetServiceImpl implements FichierProjetService {
                 .taille(fichier.getSize())
                 .dateAjout(LocalDateTime.now())
                 .projet(projet)
+                .proposition(proposition)
                 .build());
-        return versReponse(enregistre);
+        projet.getFichiers().add(enregistre);
+        return enregistre;
     }
 
     @Override
@@ -117,7 +139,10 @@ public class FichierProjetServiceImpl implements FichierProjetService {
         FichierProjet fichier = fichierRepository.findByIdAndProjetId(fichierId, projetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pièce jointe introuvable."));
         acces.verifierProprietaire(fichier.getProjet());
-        if (fichier.getProjet().getStatut() != StatutProjet.EN_ETUDE) {
+        if (fichier.getProposition() != null) {
+            throw new BadRequestException("Ce plan appartient à une proposition de la société.");
+        }
+        if (!fichier.getProjet().isEnCours()) {
             throw new BadRequestException("Le dossier a déjà été traité : ses pièces ne peuvent plus être modifiées.");
         }
         try {

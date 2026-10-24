@@ -46,4 +46,10 @@ public class FichierProjet {
     @JoinColumn(name = "projet_id", nullable = false)
     @ToString.Exclude
     private ProjetConstruction projet;
+
+    /** Plan joint par la société à l'une de ses propositions (null : pièce du dossier de l'acquéreur). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proposition_id")
+    @ToString.Exclude
+    private PropositionProjet proposition;
 }
