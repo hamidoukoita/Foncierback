@@ -50,6 +50,9 @@ public class ReservationResponse {
     private String referencePaiement;
     private LocalDateTime datePaiement;
     private Boolean rembourse;
+    /** Part rendue si l'acquéreur annule (règle de la société au moment de la réservation). */
+    private Integer pourcentageRemboursement;
+    private java.math.BigDecimal montantRembourse;
     private LocalDateTime dateRemboursement;
 
     // --- Bien vendu à un autre acquéreur ---

@@ -161,7 +161,7 @@ public class ReservationController {
 
     @PatchMapping("/{id}/annuler")
     @PreAuthorize("hasAnyRole('ADMIN', 'ACQUEREUR')")
-    @Operation(summary = "Annuler sa réservation (acquéreur) : le montant payé n'est pas remboursé")
+    @Operation(summary = "Annuler sa réservation (acquéreur) : remboursée selon le pourcentage fixé par la société")
     public ResponseEntity<ApiResponse<ReservationResponse>> annuler(@PathVariable Long id) {
         ReservationResponse response = reservationService.annulerParAcquereur(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Réservation annulée", response));

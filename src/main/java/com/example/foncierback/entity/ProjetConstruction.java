@@ -54,18 +54,17 @@ public class ProjetConstruction {
     private String description;
 
     // --- Modèle personnalisé (quand l'acquéreur ne choisit pas un modèle du catalogue) ---
+    // Les colonnes historiques (chambres, salles de bain, surface, description) sont conservées.
 
-    @Column(name = "description_modele_personnalise", columnDefinition = "TEXT")
-    private String descriptionModelePersonnalise;
-
-    @Column(name = "nombre_chambres_souhaitees")
-    private Integer nombreChambresSouhaitees;
-
-    @Column(name = "nombre_salles_bain_souhaitees")
-    private Integer nombreSallesBainSouhaitees;
-
-    @Column(name = "surface_construite_souhaitee")
-    private Double surfaceConstruiteSouhaitee;
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "nombreChambres", column = @Column(name = "nombre_chambres_souhaitees")),
+            @AttributeOverride(name = "nombreSallesBain", column = @Column(name = "nombre_salles_bain_souhaitees")),
+            @AttributeOverride(name = "surfaceHabitable", column = @Column(name = "surface_construite_souhaitee")),
+            @AttributeOverride(name = "precisions",
+                    column = @Column(name = "description_modele_personnalise", columnDefinition = "TEXT"))
+    })
+    private DescriptionMaison maisonSouhaitee;
 
     @Column(name = "budget_estime", precision = 15, scale = 2)
     private BigDecimal budgetEstime;
@@ -136,6 +135,17 @@ public class ProjetConstruction {
     @ToString.Exclude
     private java.util.List<FichierProjet> fichiers = new java.util.ArrayList<>();
 
+    /** Proposition de la société acceptée par l'acquéreur : elle fixe les termes de l'accord. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proposition_retenue_id")
+    @ToString.Exclude
+    private PropositionProjet propositionRetenue;
+
+    /** Une réponse (accord, refus, proposition) n'est possible que tant que le dossier est en cours. */
+    public boolean isEnCours() {
+        return statut == StatutProjet.EN_ETUDE || statut == StatutProjet.EN_DISCUSSION;
+    }
+
     public boolean isModelePersonnalise() {
         return modelMaison == null && maisonReference == null;
     }
@@ -147,6 +157,13 @@ public class ProjetConstruction {
         if (this.progression == null) this.progression = 0;
         if (this.dateDerniereMiseAJour == null) this.dateDerniereMiseAJour = LocalDateTime.now();
         if (this.etapeAvancement == null || this.etapeAvancement.isBlank()) this.etapeAvancement = "Dossier reçu";
+    }
+
+    /** L'acquéreur retient une proposition : l'accord est conclu. */
+    public void accepterProposition(PropositionProjet proposition) {
+        this.propositionRetenue = proposition;
+        if (proposition.getModelMaison() != null) this.modelMaison = proposition.getModelMaison();
+        validerProjet();
     }
 
     public void validerProjet() {

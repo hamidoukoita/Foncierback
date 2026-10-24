@@ -36,4 +36,9 @@ public class ReglesReservationRequest {
     @Min(value = 1, message = "Un bien doit accepter au moins une réservation")
     @Max(value = ReglesReservationResolver.RESERVATIONS_MAX_LIMITE, message = "Un bien ne peut pas recevoir plus de 20 réservations en cours")
     private Integer reservationsMax;
+
+    /** Part du montant rendue si l'acquéreur annule, de 0 (rien) à 100 % (tout) ; absente = inchangée. */
+    @Min(value = 0, message = "Le pourcentage remboursé ne peut pas être négatif")
+    @Max(value = 100, message = "Le pourcentage remboursé ne peut pas dépasser 100 %")
+    private Integer pourcentageRemboursementAnnulation;
 }

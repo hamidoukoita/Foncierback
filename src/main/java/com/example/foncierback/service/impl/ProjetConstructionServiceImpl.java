@@ -5,7 +5,11 @@ import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.AvancementProjetRequest;
 import com.example.foncierback.dto.request.ProjetConstructionRequest;
 import com.example.foncierback.dto.response.ProjetConstructionResponse;
+import com.example.foncierback.dto.DescriptionMaisonDto;
 import com.example.foncierback.entity.Acquereur;
+import com.example.foncierback.entity.DescriptionMaison;
+import com.example.foncierback.entity.enums.StatutProposition;
+import com.example.foncierback.repository.PropositionProjetRepository;
 import com.example.foncierback.entity.AgentPromoteur;
 import com.example.foncierback.entity.ModelMaison;
 import com.example.foncierback.entity.MaisonCleEnMain;
@@ -45,6 +49,12 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
     private final ProjetConstructionAcces acces;
     private final MaisonCleEnMainRepository maisonRepository;
     private final CouvertureResolver couvertureResolver;
+    private final PropositionProjetRepository propositionRepository;
+    private final NotificationDispatchService notifications;
+
+    static final String TYPE_PROJET = "PROJET_CONSTRUCTION";
+    static final String LIBELLE_PROJET = "Projet de construction";
+    static final String CIBLE_PROJET = "PROJET_CONSTRUCTION";
 
     /**
      * Soumission d'un projet par un acquéreur : le dossier part chez une société agréée,
@@ -63,6 +73,8 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
             throw new BadRequestException("Cette société n'est pas encore agréée : elle ne peut pas recevoir de projet");
         }
 
+        verifierBudgetMinimum(societe, request.getBudgetEstime());
+
         ModelMaison modelMaison = resolveModel(request.getModelMaisonId());
         MaisonCleEnMain maisonReference = modelMaison == null ? resolveMaison(request.getMaisonCleEnMainId()) : null;
         if (maisonReference != null
@@ -76,8 +88,12 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 throw new BadRequestException("Ce modèle n'appartient pas au catalogue de la société choisie");
             }
             verifierCompatibilite(modelMaison, request.getSuperficieTerrain(), clean(request.getTypeTerrain()));
-        } else if (personnalise && clean(request.getDescriptionModelePersonnalise()) == null) {
-            throw new BadRequestException("Choisissez un modèle, une maison clé en main, ou décrivez la maison souhaitée");
+        } else if (personnalise) {
+            DescriptionMaisonDto souhaits = request.getMaisonSouhaitee();
+            if (souhaits == null || souhaits.getNombreNiveaux() == null || souhaits.getNombreChambres() == null) {
+                throw new BadRequestException("Choisissez un modèle, une maison clé en main, ou décrivez la maison souhaitée "
+                        + "(au moins le nombre de niveaux et de chambres)");
+            }
         }
 
         ProjetConstruction projet = ProjetConstruction.builder()
@@ -88,10 +104,7 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 .typeTerrain(clean(request.getTypeTerrain()))
                 .description(clean(request.getDescription()))
                 .budgetEstime(request.getBudgetEstime())
-                .descriptionModelePersonnalise(personnalise ? clean(request.getDescriptionModelePersonnalise()) : null)
-                .nombreChambresSouhaitees(personnalise ? request.getNombreChambresSouhaitees() : null)
-                .nombreSallesBainSouhaitees(personnalise ? request.getNombreSallesBainSouhaitees() : null)
-                .surfaceConstruiteSouhaitee(personnalise ? request.getSurfaceConstruiteSouhaitee() : null)
+                .maisonSouhaitee(personnalise ? souhaitsSansSurface(request.getMaisonSouhaitee()) : null)
                 .maisonReference(maisonReference)
                 .statut(StatutProjet.EN_ETUDE)
                 .progression(0)
@@ -102,7 +115,19 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 .societePromotrice(societe)
                 .build();
 
-        return mapToResponse(projetConstructionRepository.save(projet));
+        ProjetConstruction enregistre = projetConstructionRepository.save(projet);
+        notifications.notifySociete(societe, TYPE_PROJET, LIBELLE_PROJET, "Nouveau projet de construction",
+                acquereur.getPrenom() + " " + acquereur.getNom() + " vous confie un projet de construction (dossier "
+                        + enregistre.getNumeroDossier() + ").",
+                CIBLE_PROJET, enregistre.getId());
+        return mapToResponse(enregistre);
+    }
+
+    /** La surface habitable est proposée par la société, pas demandée à l'acquéreur. */
+    private DescriptionMaison souhaitsSansSurface(DescriptionMaisonDto dto) {
+        DescriptionMaison souhaits = DescriptionMaisonMapper.versEntite(dto);
+        souhaits.setSurfaceHabitable(null);
+        return souhaits;
     }
 
     private String genererNumeroDossier() {
@@ -170,8 +195,12 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
     public ProjetConstructionResponse valider(Long id) {
         ProjetConstruction existing = findEntityById(id);
         acces.verifierGestion(existing);
-        verifierEnEtude(existing);
+        verifierEnCours(existing);
         existing.validerProjet();
+        rendreCaduques(existing);
+        notifications.notifyUser(existing.getAcquereur(), TYPE_PROJET, LIBELLE_PROJET, "Projet accepté",
+                nomSociete(existing) + " accepte votre projet de construction (dossier " + existing.getNumeroDossier() + ").",
+                CIBLE_PROJET, existing.getId());
         return mapToResponse(projetConstructionRepository.save(existing));
     }
 
@@ -179,9 +208,14 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
     public ProjetConstructionResponse refuser(Long id, String motifRefus) {
         ProjetConstruction existing = findEntityById(id);
         acces.verifierGestion(existing);
-        verifierEnEtude(existing);
+        verifierEnCours(existing);
         if (clean(motifRefus) == null) throw new BadRequestException("Indiquez le motif du refus à l'acquéreur");
-        existing.refuserProjet(motifRefus);
+        existing.refuserProjet(motifRefus.trim());
+        rendreCaduques(existing);
+        notifications.notifyUser(existing.getAcquereur(), TYPE_PROJET, LIBELLE_PROJET, "Projet refusé",
+                nomSociete(existing) + " ne donne pas suite à votre projet (dossier " + existing.getNumeroDossier()
+                        + ") : " + existing.getMotifRefus(),
+                CIBLE_PROJET, existing.getId());
         return mapToResponse(projetConstructionRepository.save(existing));
     }
 
@@ -230,10 +264,29 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 .orElseThrow(() -> new ResourceNotFoundException("Projet de construction introuvable avec l'identifiant : " + id));
     }
 
-    private void verifierEnEtude(ProjetConstruction projet) {
-        if (projet.getStatut() != StatutProjet.EN_ETUDE) {
+    private void verifierEnCours(ProjetConstruction projet) {
+        if (!projet.isEnCours()) {
             throw new BadRequestException("Ce projet a déjà été traité");
         }
+    }
+
+    /** La société tranche elle-même : les propositions encore sans réponse n'ont plus d'objet. */
+    private void rendreCaduques(ProjetConstruction projet) {
+        propositionRepository.findByProjetIdAndStatut(projet.getId(), StatutProposition.EN_ATTENTE)
+                .forEach(p -> p.repondre(StatutProposition.CADUQUE, null));
+    }
+
+    private String nomSociete(ProjetConstruction projet) {
+        return projet.getSocietePromotrice() == null ? "La société" : projet.getSocietePromotrice().getNom();
+    }
+
+    /** Budget facultatif, mais s'il est donné il ne descend pas sous le minimum fixé par la société. */
+    private void verifierBudgetMinimum(SocietePromotrice societe, java.math.BigDecimal budget) {
+        java.math.BigDecimal minimum = societe.getBudgetMinimumConstruction();
+        if (budget == null || minimum == null || budget.compareTo(minimum) >= 0) return;
+        throw new BadRequestException("Le budget indiqué est inférieur au budget minimum de " + societe.getNom()
+                + " (" + String.format(java.util.Locale.FRANCE, "%,d", minimum.longValue()).replace('\u202f', ' ').replace('\u00a0', ' ')
+                + " FCFA). Augmentez-le ou laissez le champ vide.");
     }
 
     private void verifierCompatibilite(ModelMaison model, Double superficie, String typeTerrain) {
@@ -309,11 +362,12 @@ public class ProjetConstructionServiceImpl implements ProjetConstructionService 
                 .maisonReferenceId(e.getMaisonReference() != null ? e.getMaisonReference().getId() : null)
                 .maisonReferenceTitre(e.getMaisonReference() != null ? e.getMaisonReference().getTitre() : null)
                 .maisonReferenceImageUrl(e.getMaisonReference() != null ? couvertureResolver.pourBien(e.getMaisonReference().getId()) : null)
-                .descriptionModelePersonnalise(e.getDescriptionModelePersonnalise())
-                .nombreChambresSouhaitees(e.getNombreChambresSouhaitees())
-                .nombreSallesBainSouhaitees(e.getNombreSallesBainSouhaitees())
-                .surfaceConstruiteSouhaitee(e.getSurfaceConstruiteSouhaitee())
-                .fichiers(e.getFichiers().stream().map(FichierProjetServiceImpl::versReponse).toList())
+                .maisonSouhaitee(DescriptionMaisonMapper.versDto(e.getMaisonSouhaitee()))
+                .propositionRetenue(e.getPropositionRetenue() == null ? null
+                        : EchangeProjetServiceImpl.versReponse(e.getPropositionRetenue()))
+                .fichiers(e.getFichiers().stream()
+                        .filter(f -> f.getProposition() == null)
+                        .map(FichierProjetServiceImpl::versReponse).toList())
                 .build();
     }
 }

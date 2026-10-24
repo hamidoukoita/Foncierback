@@ -44,11 +44,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
     java.math.BigDecimal chiffreAffairesAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut,
                                               @Param("vendue") StatutReservation vendue);
 
-    /** Montants conservés : hors remboursements, et un report n'est compté que sur la réservation d'origine. */
+    /**
+     * Montants conservés : déduction faite des remboursements (partiels ou totaux ; un ancien
+     * remboursement sans montant compte pour le tout), et un report n'est compté que sur la réservation d'origine.
+     */
     @Query("""
-            select coalesce(sum(r.montantReservation), 0) from Reservation r
+            select coalesce(sum(case when r.rembourse = true and r.montantRembourse is null then 0
+                                     else r.montantReservation - coalesce(r.montantRembourse, 0) end), 0)
+            from Reservation r
             where r.agentPromoteur.id = :agentId and coalesce(r.dateAttribution, r.dateReservation) >= :debut
-              and r.rembourse = false and r.reservationOrigineId is null
+              and r.reservationOrigineId is null
               and (r.suiteVente is null or r.suiteVente not in :suitesRemboursees)
             """)
     java.math.BigDecimal reservationsEncaisseesAgent(@Param("agentId") Long agentId, @Param("debut") java.time.LocalDateTime debut,

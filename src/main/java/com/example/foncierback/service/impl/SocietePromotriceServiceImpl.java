@@ -4,6 +4,7 @@ import com.example.foncierback.common.exception.BadRequestException;
 import com.example.foncierback.config.security.SecurityUtils;
 import com.example.foncierback.common.exception.ResourceNotFoundException;
 import com.example.foncierback.dto.request.ReglesReservationRequest;
+import com.example.foncierback.dto.request.ReglesConstructionRequest;
 import com.example.foncierback.dto.request.SocietePromotriceRequest;
 import com.example.foncierback.dto.response.SocietePromotriceResponse;
 import com.example.foncierback.entity.SocietePromotrice;
@@ -150,6 +151,17 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
         existing.setReservationsMaxParBien(request.getReservationsMax());
         existing.setReservationMultiple(request.getReservationsMax() > 1);
         existing.setPrixReservation(request.getPrixReservation());
+        if (request.getPourcentageRemboursementAnnulation() != null) {
+            existing.setPourcentageRemboursementAnnulation(request.getPourcentageRemboursementAnnulation());
+        }
+        return mapToResponse(societePromotriceRepository.save(existing));
+    }
+
+    @Override
+    public SocietePromotriceResponse updateReglesConstruction(Long id, ReglesConstructionRequest request) {
+        SocietePromotrice existing = findEntityById(id);
+        java.math.BigDecimal minimum = request.getBudgetMinimumConstruction();
+        existing.setBudgetMinimumConstruction(minimum == null || minimum.signum() == 0 ? null : minimum);
         return mapToResponse(societePromotriceRepository.save(existing));
     }
 
@@ -208,6 +220,8 @@ public class SocietePromotriceServiceImpl implements SocietePromotriceService {
                 .prixReservation(entity.getPrixReservation() != null
                         ? entity.getPrixReservation()
                         : ReglesReservationResolver.PRIX_PAR_DEFAUT)
+                .pourcentageRemboursementAnnulation(reglesResolver.pourcentageRemboursement(entity))
+                .budgetMinimumConstruction(entity.getBudgetMinimumConstruction())
                 .parametrageInitialFait(Boolean.TRUE.equals(entity.getParametrageInitialFait()))
                 .build();
     }

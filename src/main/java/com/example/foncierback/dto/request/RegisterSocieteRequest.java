@@ -61,10 +61,12 @@ public class RegisterSocieteRequest {
 
     // --- Responsable Promoteur (Compte de direction) ---
     @NotBlank(message = "Le nom du responsable est obligatoire")
+    @Size(min = Formats.NOM_MIN, max = Formats.NOM_MAX, message = "Le nom du responsable doit compter entre 2 et 50 caractères")
     @Pattern(regexp = Formats.NOM_PERSONNE, message = "Le nom du responsable " + Formats.MESSAGE_NOM)
     private String nomResponsable;
 
     @NotBlank(message = "Le prénom du responsable est obligatoire")
+    @Size(min = Formats.NOM_MIN, max = Formats.NOM_MAX, message = "Le prénom du responsable doit compter entre 2 et 50 caractères")
     @Pattern(regexp = Formats.NOM_PERSONNE, message = "Le prénom du responsable " + Formats.MESSAGE_NOM)
     private String prenomResponsable;
 

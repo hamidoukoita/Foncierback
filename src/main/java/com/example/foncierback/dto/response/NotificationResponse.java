@@ -24,4 +24,6 @@ public class NotificationResponse {
     private String utilisateurNom;
     private String utilisateurPrenom;
     private String utilisateurTelephone;
+    private String cibleType;
+    private Long cibleId;
 }

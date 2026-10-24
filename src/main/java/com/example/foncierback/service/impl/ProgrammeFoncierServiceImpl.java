@@ -7,6 +7,7 @@ import com.example.foncierback.dto.response.ProgrammeFoncierResponse;
 import com.example.foncierback.entity.ProgrammeFoncier;
 import com.example.foncierback.entity.SocietePromotrice;
 import com.example.foncierback.entity.enums.StatutProgramme;
+import com.example.foncierback.entity.enums.StatutParcelle;
 import com.example.foncierback.repository.LotProgrammeRepository;
 import com.example.foncierback.repository.ProgrammeFoncierRepository;
 import com.example.foncierback.repository.SocietePromotriceRepository;
@@ -167,6 +168,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
 
     private ProgrammeFoncierResponse mapToResponse(ProgrammeFoncier entity) {
         int totalLots = (int) lotProgrammeRepository.countByProgrammeFoncierId(entity.getId());
+        int lotsDisponibles = (int) lotProgrammeRepository.countByProgrammeFoncierIdAndStatut(entity.getId(), StatutParcelle.DISPONIBLE);
+        int lotsVendus = (int) lotProgrammeRepository.countByProgrammeFoncierIdAndStatut(entity.getId(), StatutParcelle.VENDUE);
         return ProgrammeFoncierResponse.builder()
                 .id(entity.getId())
                 .imageUrl(couvertureResolver.pourProgramme(entity.getId()))
@@ -188,6 +191,8 @@ public class ProgrammeFoncierServiceImpl implements ProgrammeFoncierService {
                 .societeNom(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getNom() : null)
                 .societeLogoUrl(entity.getSocietePromotrice() != null ? entity.getSocietePromotrice().getLogoUrl() : null)
                 .totalLots(totalLots)
+                .lotsDisponibles(lotsDisponibles)
+                .lotsVendus(lotsVendus)
                 .planMasseId(entity.getPlanMasse() != null ? entity.getPlanMasse().getId() : null)
                 .build();
     }

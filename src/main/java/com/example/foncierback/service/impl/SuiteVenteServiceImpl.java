@@ -78,7 +78,8 @@ public class SuiteVenteServiceImpl implements SuiteVenteService {
         reservationRepository.save(reservation);
         notifications.notifyUser(reservation.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Remboursement demandé",
                 "Le montant de votre réservation " + reservation.getNumeroDossier()
-                        + " vous sera remboursé sur votre compte Orange Money sous 24 h.");
+                        + " vous sera remboursé sur votre compte Orange Money sous 24 h.",
+                "RESERVATION", reservation.getId());
         return reservationService.getById(reservation.getId());
     }
 
@@ -109,7 +110,8 @@ public class SuiteVenteServiceImpl implements SuiteVenteService {
             reservation.rembourser();
             notifications.notifyUser(reservation.getAcquereur(), TYPE_RESERVATION, LIBELLE_RESERVATION, "Réservation remboursée",
                     "Le montant de votre réservation " + reservation.getNumeroDossier()
-                            + " vous a été remboursé sur votre compte Orange Money.");
+                            + " vous a été remboursé sur votre compte Orange Money.",
+                "RESERVATION", reservation.getId());
         }
         reservationRepository.saveAll(aRembourser);
         return aRembourser.size();

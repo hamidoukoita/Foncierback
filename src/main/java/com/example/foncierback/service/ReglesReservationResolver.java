@@ -12,7 +12,8 @@ import java.math.BigDecimal;
  * - prix de la réservation : montant fixe payé par l'acquéreur pour réserver l'un de ses biens ;
  * - durée de la réservation : heures pendant lesquelles le bien reste bloqué une fois le décompte
  *   démarré par l'agent (passé ce délai sans vente, la réservation expire et le bien est libéré) ;
- * - nombre maximal de réservations en cours sur un même bien (1 = réservation unique).
+ * - nombre maximal de réservations en cours sur un même bien (1 = réservation unique) ;
+ * - part du montant rendue quand l'acquéreur annule lui-même sa réservation (0 à 100 %).
  */
 @Component
 public class ReglesReservationResolver {
@@ -25,6 +26,9 @@ public class ReglesReservationResolver {
     public static final long PRIX_MAX = 5_000_000;
 
     public static final int RESERVATIONS_MAX_LIMITE = 20;
+
+    /** Sans réglage de la société, une annulation par l'acquéreur n'est pas remboursée. */
+    public static final int REMBOURSEMENT_PAR_DEFAUT = 0;
     /** Plafond appliqué aux sociétés passées en « réservation multiple » avant le choix d'un nombre. */
     private static final int RESERVATIONS_MAX_HISTORIQUE = 3;
 
@@ -65,6 +69,16 @@ public class ReglesReservationResolver {
 
     public BigDecimal prix(SocietePromotrice societe) {
         return societe != null && societe.getPrixReservation() != null ? societe.getPrixReservation() : PRIX_PAR_DEFAUT;
+    }
+
+    /** Pourcentage du montant rendu à l'acquéreur qui annule sa réservation. */
+    public int pourcentageRemboursement(SocietePromotrice societe) {
+        if (societe == null || societe.getPourcentageRemboursementAnnulation() == null) return REMBOURSEMENT_PAR_DEFAUT;
+        return Math.max(0, Math.min(100, societe.getPourcentageRemboursementAnnulation()));
+    }
+
+    public int pourcentageRemboursement(BienFoncier bien) {
+        return pourcentageRemboursement(societe(bien));
     }
 
     /** Montant à payer pour réserver ce bien (lot, parcelle ou maison clé en main) : le prix de sa société. */

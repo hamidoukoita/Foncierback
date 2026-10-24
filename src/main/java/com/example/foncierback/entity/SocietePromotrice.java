@@ -79,6 +79,14 @@ public class SocietePromotrice {
     @Column(name = "prix_reservation", precision = 15, scale = 2)
     private java.math.BigDecimal prixReservation;
 
+    /** Budget minimum, en FCFA, pour un projet « Construire sur mon terrain » (null = pas de minimum). */
+    @Column(name = "budget_minimum_construction", precision = 15, scale = 2)
+    private java.math.BigDecimal budgetMinimumConstruction;
+
+    /** Part du montant de la réservation rendue quand l'acquéreur annule, de 0 à 100 % (null = 0 %). */
+    @Column(name = "pourcentage_remboursement_annulation")
+    private Integer pourcentageRemboursementAnnulation;
+
     /** Nombre maximal de réservations en cours sur un même bien (1 = réservation unique ; null = règle historique). */
     @Column(name = "reservations_max_par_bien")
     private Integer reservationsMaxParBien;

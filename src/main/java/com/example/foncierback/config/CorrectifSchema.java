@@ -1,5 +1,6 @@
 package com.example.foncierback.config;
 
+import com.example.foncierback.common.validation.Formats;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -9,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Le schéma est géré par ddl-auto=update, qui crée les colonnes d'enum en type ENUM MySQL
@@ -26,7 +28,8 @@ public class CorrectifSchema implements ApplicationRunner {
 
     /** Colonnes dont l'enum Java a gagné des valeurs depuis leur création. */
     private static final List<Colonne> COLONNES_ENUM = List.of(
-            new Colonne("reservations", "statut")
+            new Colonne("reservations", "statut"),
+            new Colonne("projets_construction", "statut")
     );
 
     private final JdbcTemplate jdbc;
@@ -38,6 +41,38 @@ public class CorrectifSchema implements ApplicationRunner {
         }
         supprimerLiensExternes();
         retirerLibellesGeneriques();
+        for (Colonne colonne : COLONNES_TITRE_FONCIER) {
+            normaliserTitresFonciers(colonne.table(), colonne.nom());
+        }
+    }
+
+    /** Colonnes qui portent un numéro de Titre Foncier. */
+    private static final List<Colonne> COLONNES_TITRE_FONCIER = List.of(
+            new Colonne("parcelles_individuelles", "numero_titre_foncier"),
+            new Colonne("maisons_cle_en_main", "numero_titre_foncier"),
+            new Colonne("projets_construction", "numero_titre_foncier"),
+            new Colonne("programmes_fonciers", "numero_titre_mere"));
+
+    /** Les numéros saisis avant la règle « TF- » (« TF 1024 », « tf r231 »…) sont ramenés au format commun. */
+    private void normaliserTitresFonciers(String table, String colonne) {
+        try {
+            List<Map<String, Object>> lignes = jdbc.queryForList(
+                    "SELECT id, " + colonne + " AS numero FROM " + table + " WHERE " + colonne + " IS NOT NULL");
+            int corriges = 0;
+            for (Map<String, Object> ligne : lignes) {
+                String actuel = (String) ligne.get("numero");
+                String normalise = Formats.titreFoncier(actuel);
+                if (normalise != null && !normalise.equals(actuel)) {
+                    corriges += jdbc.update("UPDATE " + table + " SET " + colonne + " = ? WHERE id = ?",
+                            normalise, ligne.get("id"));
+                }
+            }
+            if (corriges > 0) {
+                log.info("{} numéro(s) de Titre Foncier mis au format « TF- » dans {}.", corriges, table);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Normalisation des Titres Fonciers impossible ({}) : {}", table, e.getMessage());
+        }
     }
 
     /** L'ancien libellé par défaut « Pièce suivante » est remplacé par le nom de la pièce d'arrivée, calculé à l'affichage. */

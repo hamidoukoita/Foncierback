@@ -82,6 +82,14 @@ public class Reservation {
     @Column(name = "date_remboursement")
     private LocalDateTime dateRemboursement;
 
+    /** Règle de la société au moment de la réservation : part rendue si l'acquéreur annule (null = 0 %). */
+    @Column(name = "pourcentage_remboursement")
+    private Integer pourcentageRemboursement;
+
+    /** Montant effectivement rendu à l'acquéreur (partiel après une annulation, total après une vente à un autre). */
+    @Column(name = "montant_rembourse", precision = 15, scale = 2)
+    private java.math.BigDecimal montantRembourse;
+
     // --- Bien vendu à un autre acquéreur : remboursement ou report sur un autre bien ---
 
     @Enumerated(EnumType.STRING)
@@ -166,12 +174,28 @@ public class Reservation {
         this.motifAnnulation = "Délai de réservation écoulé sans vente : le montant de la réservation n'est pas remboursé.";
     }
 
-    /** Désistement de l'acquéreur : jamais remboursé. */
+    /**
+     * Désistement de l'acquéreur : remboursé selon la règle de la société acceptée en réservant
+     * (versement simulé, immédiat). À 0 %, rien n'est rendu.
+     */
     public void annulerParAcquereur() {
+        LocalDateTime maintenant = LocalDateTime.now();
+        int pourcentage = pourcentageRemboursement != null ? pourcentageRemboursement : 0;
         this.statut = StatutReservation.ANNULEE;
-        this.dateTraitement = LocalDateTime.now();
-        this.motifAnnulation = "Annulée par l'acquéreur : le montant de la réservation n'est pas remboursé.";
-        this.rembourse = Boolean.FALSE;
+        this.dateTraitement = maintenant;
+        if (estPayee() && pourcentage > 0) {
+            this.montantRembourse = montantReservation
+                    .multiply(java.math.BigDecimal.valueOf(pourcentage))
+                    .divide(java.math.BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+            this.rembourse = Boolean.TRUE;
+            this.dateRemboursement = maintenant;
+            this.motifAnnulation = pourcentage == 100
+                    ? "Annulée par l'acquéreur : le montant de la réservation est remboursé en totalité."
+                    : "Annulée par l'acquéreur : " + pourcentage + " % du montant de la réservation est remboursé.";
+        } else {
+            this.rembourse = Boolean.FALSE;
+            this.motifAnnulation = "Annulée par l'acquéreur : le montant de la réservation n'est pas remboursé.";
+        }
     }
 
     /**
@@ -200,6 +224,7 @@ public class Reservation {
         LocalDateTime maintenant = LocalDateTime.now();
         this.suiteVente = SuiteVente.REMBOURSEE;
         this.rembourse = Boolean.TRUE;
+        this.montantRembourse = this.montantReservation;
         this.dateRemboursement = maintenant;
         if (this.dateRemboursementPrevue == null) this.dateRemboursementPrevue = maintenant;
     }

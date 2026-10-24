@@ -19,12 +19,12 @@ public class IdentiteRequest {
     }
 
     @NotBlank(message = "Le nom est obligatoire")
-    @Size(max = 100, message = "Le nom ne doit pas dépasser 100 caractères")
+    @Size(min = Formats.NOM_MIN, max = Formats.NOM_MAX, message = "Le nom doit compter entre 2 et 50 caractères")
     @Pattern(regexp = Formats.NOM_PERSONNE, message = "Le nom " + Formats.MESSAGE_NOM)
     private String nom;
 
     @NotBlank(message = "Le prénom est obligatoire")
-    @Size(max = 100, message = "Le prénom ne doit pas dépasser 100 caractères")
+    @Size(min = Formats.NOM_MIN, max = Formats.NOM_MAX, message = "Le prénom doit compter entre 2 et 50 caractères")
     @Pattern(regexp = Formats.NOM_PERSONNE, message = "Le prénom " + Formats.MESSAGE_NOM)
     private String prenom;
 

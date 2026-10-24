@@ -31,4 +31,6 @@ public class ConditionsReservationResponse {
     private boolean visitePossible;
     private String motifVisiteImpossible;
     private String societeNom;
+    /** Part du montant rendue si l'acquéreur annule lui-même (0 = rien, 100 = tout). */
+    private int pourcentageRemboursement;
 }
