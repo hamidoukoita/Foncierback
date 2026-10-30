@@ -35,6 +35,12 @@ public class CompteServiceImpl implements CompteService {
     public AuthResponse changerTelephone(ChangementTelephoneRequest request) {
         Utilisateur user = utilisateurConnecte();
         verifierMotDePasse(user, request.getMotDePasse());
+        // Seuls les acquéreurs (diaspora comprise) peuvent avoir un numéro étranger.
+        if (!(user instanceof com.example.foncierback.entity.Acquereur)
+                && !com.example.foncierback.common.validation.Telephones.estMalien(request.getNouveauTelephone())) {
+            throw new BadRequestException(com.example.foncierback.common.validation.Telephones.messageInvalide(
+                    request.getNouveauTelephone(), true));
+        }
         if (Objects.equals(user.getTelephone(), request.getNouveauTelephone())) {
             throw new BadRequestException("C'est déjà votre numéro actuel.");
         }

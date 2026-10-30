@@ -44,6 +44,30 @@ public class CorrectifSchema implements ApplicationRunner {
         for (Colonne colonne : COLONNES_TITRE_FONCIER) {
             normaliserTitresFonciers(colonne.table(), colonne.nom());
         }
+        for (Colonne colonne : COLONNES_TELEPHONE) {
+            telephonesAuFormatInternational(colonne.table(), colonne.nom());
+        }
+    }
+
+    /** Colonnes qui portent un numéro de téléphone. */
+    private static final List<Colonne> COLONNES_TELEPHONE = List.of(
+            new Colonne("utilisateurs", "telephone"),
+            new Colonne("societes_promotrices", "telephone"));
+
+    /**
+     * Les numéros d'avant l'ouverture à l'international (8 chiffres maliens, sans indicatif)
+     * passent au format E.164 : « 76123456 » → « +22376123456 ». Sans effet une fois fait.
+     */
+    private void telephonesAuFormatInternational(String table, String colonne) {
+        try {
+            int corriges = jdbc.update("UPDATE " + table + " SET " + colonne + " = CONCAT('+223', " + colonne + ") "
+                    + "WHERE " + colonne + " REGEXP '^[0-9]{8}$'");
+            if (corriges > 0) {
+                log.info("{} numéro(s) de téléphone mis au format international (+223) dans {}.", corriges, table);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Passage des téléphones au format international impossible ({}) : {}", table, e.getMessage());
+        }
     }
 
     /** Colonnes qui portent un numéro de Titre Foncier. */

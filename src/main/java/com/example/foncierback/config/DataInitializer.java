@@ -42,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initSuperAdmin() {
+        adminTelephone = com.example.foncierback.common.validation.Formats.telephone(adminTelephone);
         if (!utilisateurRepository.existsByTelephone(adminTelephone)) {
             Administrateur admin = new Administrateur();
             admin.setNom(adminNom);

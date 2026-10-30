@@ -2,6 +2,7 @@ package com.example.foncierback.dto.request;
 
 import com.example.foncierback.entity.enums.StatutCompte;
 import com.example.foncierback.common.validation.Formats;
+import com.example.foncierback.common.validation.Telephone;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -34,7 +35,7 @@ public class AgentPromoteurRequest {
 
     @NotBlank(message = "Le numéro de téléphone est obligatoire")
     @Size(max = 50, message = "Le numéro de téléphone ne doit pas dépasser 50 caractères")
-    @Pattern(regexp = Formats.TELEPHONE_MALI, message = Formats.MESSAGE_TELEPHONE)
+    @Telephone(maliUniquement = true)
     private String telephone;
 
     @Size(min = Formats.MOT_DE_PASSE_MIN, message = "Le mot de passe doit contenir au moins 6 caractères")
