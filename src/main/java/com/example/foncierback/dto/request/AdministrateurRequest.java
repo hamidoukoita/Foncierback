@@ -26,9 +26,14 @@ public class AdministrateurRequest {
 
     @NotBlank(message = "Le numéro de téléphone est obligatoire")
     @Size(max = 50, message = "Le numéro de téléphone ne doit pas dépasser 50 caractères")
+    @com.example.foncierback.common.validation.Telephone(maliUniquement = true)
     private String telephone;
 
     private String motDePasse;
 
     private StatutCompte statut;
+
+    public void setTelephone(String valeur) {
+        this.telephone = com.example.foncierback.common.validation.Formats.telephone(valeur);
+    }
 }

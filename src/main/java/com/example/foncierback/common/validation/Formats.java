@@ -16,10 +16,6 @@ public final class Formats {
     public static final int NOM_MIN = 2;
     public static final int NOM_MAX = 50;
 
-    /** Numéro malien : 8 chiffres (mobiles 5 à 9, fixes 2), sans l'indicatif +223. */
-    public static final String TELEPHONE_MALI = "^[25-9]\\d{7}$";
-    public static final String MESSAGE_TELEPHONE = "Le numéro doit être un numéro malien à 8 chiffres (ex. 76 12 34 56)";
-
     /** Texte qui contient au moins une lettre ou un chiffre (refuse « … », « --- », etc.). */
     public static final String TEXTE_UTILE = "(?s)^.*[\\p{L}\\p{N}].*$";
 
@@ -37,12 +33,9 @@ public final class Formats {
         return v.isEmpty() ? null : v;
     }
 
-    /** « +223 76 12-34.56 » → « 76123456 » : seuls les chiffres, sans l'indicatif du Mali. */
+    /** « 76 12-34.56 » → « +22376123456 », « 06 12 34 56 78 » (+33) → « +33612345678 » : format E.164. */
     public static String telephone(String valeur) {
-        if (valeur == null) return null;
-        String chiffres = valeur.replaceAll("\\D", "");
-        if (chiffres.length() == 11 && chiffres.startsWith("223")) chiffres = chiffres.substring(3);
-        return chiffres.isEmpty() ? null : chiffres;
+        return Telephones.normaliser(valeur);
     }
 
     /**

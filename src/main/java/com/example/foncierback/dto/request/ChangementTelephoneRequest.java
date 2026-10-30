@@ -1,8 +1,8 @@
 package com.example.foncierback.dto.request;
 
 import com.example.foncierback.common.validation.Formats;
+import com.example.foncierback.common.validation.Telephone;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class ChangementTelephoneRequest {
 
     @NotBlank(message = "Le nouveau numéro est obligatoire")
-    @Pattern(regexp = Formats.TELEPHONE_MALI, message = Formats.MESSAGE_TELEPHONE)
+    @Telephone
     private String nouveauTelephone;
 
     @NotBlank(message = "Le mot de passe actuel est obligatoire")

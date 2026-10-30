@@ -1,6 +1,7 @@
 package com.example.foncierback.dto.request;
 
 import com.example.foncierback.common.validation.Formats;
+import com.example.foncierback.common.validation.Telephone;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -33,7 +34,7 @@ public class RegisterSocieteRequest {
 
     @NotBlank(message = "Le téléphone de la société est obligatoire")
     @Size(max = 50, message = "Le téléphone ne doit pas dépasser 50 caractères")
-    @Pattern(regexp = Formats.TELEPHONE_MALI, message = Formats.MESSAGE_TELEPHONE)
+    @Telephone(maliUniquement = true)
     private String telephoneSociete;
 
     @Email(message = "L'email de la société doit être valide")
@@ -71,7 +72,7 @@ public class RegisterSocieteRequest {
     private String prenomResponsable;
 
     @NotBlank(message = "Le téléphone de connexion du responsable est obligatoire")
-    @Pattern(regexp = Formats.TELEPHONE_MALI, message = Formats.MESSAGE_TELEPHONE)
+    @Telephone(maliUniquement = true)
     private String telephoneResponsable;
 
     @Email(message = "L'email du responsable doit être valide")
