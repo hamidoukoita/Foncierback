@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -65,10 +66,27 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, errors);
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("MethodArgumentTypeMismatchException: paramètre '{}' = '{}'", ex.getName(), ex.getValue());
+        return buildResponse(HttpStatus.BAD_REQUEST,
+            "La valeur '" + ex.getValue() + "' n'est pas valide pour le paramètre '" + ex.getName() + "'.");
+}
+
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex,
+                                                                  jakarta.servlet.http.HttpServletRequest request) {
         log.warn("AccessDeniedException: {}", ex.getMessage());
-        return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les autorisations nécessaires.");
+        // Refus d'un @PreAuthorize sans personne de connecté : c'est une session à rouvrir, pas un droit manquant.
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            boolean jetonRefuse = Boolean.TRUE.equals(
+                    request.getAttribute(com.example.foncierback.config.security.JwtAuthenticationFilter.JETON_INVALIDE));
+            return buildResponse(HttpStatus.UNAUTHORIZED, jetonRefuse
+                    ? com.example.foncierback.config.security.ReponsesSecurite.SESSION_EXPIREE
+                    : com.example.foncierback.config.security.ReponsesSecurite.CONNEXION_REQUISE);
+        }
+        return buildResponse(HttpStatus.FORBIDDEN, com.example.foncierback.config.security.ReponsesSecurite.ACCES_REFUSE);
     }
 
     @ExceptionHandler(AuthenticationException.class)

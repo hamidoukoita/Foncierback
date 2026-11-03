@@ -21,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final ReponsesSecurite reponsesSecurite;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,6 +53,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/modeles-maison", "/api/modeles-maison/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(erreurs -> erreurs
+                        .authenticationEntryPoint(reponsesSecurite)
+                        .accessDeniedHandler(reponsesSecurite))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

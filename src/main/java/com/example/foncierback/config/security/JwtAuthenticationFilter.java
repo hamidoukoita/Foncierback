@@ -19,6 +19,10 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /** Attribut de requête posé quand un jeton est envoyé mais refusé (expiré, ou compte introuvable). */
+    public static final String JETON_INVALIDE = "foncier.jetonInvalide";
+
+
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
@@ -43,8 +47,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (telephone != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(telephone);
 
-                if (jwtService.isTokenValid(jwt, userDetails)
-                        && userDetails.isEnabled()
+                if (!jwtService.isTokenValid(jwt, userDetails)) {
+                    request.setAttribute(JETON_INVALIDE, true);
+                } else if (userDetails.isEnabled()
                         && userDetails.isAccountNonLocked()) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
@@ -57,7 +62,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Ignorer l'erreur d'extraction ou de token invalide; l'absence d'authentification sera gérée par Spring Security
+            // Jeton expiré, illisible ou d'un compte introuvable (ex. numéro changé) : la requête continue
+            // sans authentification. Route publique : elle aboutit ; route protégée : 401 « session expirée ».
+            request.setAttribute(JETON_INVALIDE, true);
         }
 
         filterChain.doFilter(request, response);
